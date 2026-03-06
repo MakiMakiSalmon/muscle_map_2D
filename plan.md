@@ -28,4 +28,6 @@
 ]
 ```
 
-#
+# what show
+- square box which include "tire" parameter
+- if you click the square, show the window you can enter the "tire" as int
