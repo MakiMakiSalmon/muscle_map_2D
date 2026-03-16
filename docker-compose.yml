@@ -1,13 +1,13 @@
+version: '3.8'
+
 services:
   app:
     build: .
     ports:
-      - "8080:8080"
+      - "3000:3000"
+    volumes:
+      - .:/app
+      - /app/node_modules
     environment:
-      - DB_HOST=db
-    depends_on:
-      - db
-  db:
-    image: postgres:15-alpine
-    environment:
-      POSTGRES_PASSWORD: password
+      - NODE_ENV=development
+    command: npm run docker:dev
