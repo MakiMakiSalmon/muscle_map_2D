@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 // in-memory storage (本番環境ではデータベースを使用)
-let fatigueData: { [key: string]: number } = {
+const fatigueData: { [key: string]: number } = {
   head: 0,
   shoulders: 0,
   chest: 0,
@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
     }
     
     return NextResponse.json({ success: true, data: fatigueData });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: 'Invalid request' }, { status: 400 });
   }
 }
