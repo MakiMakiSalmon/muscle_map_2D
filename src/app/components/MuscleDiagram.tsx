@@ -1,5 +1,7 @@
 'use client';
 
+import { MuscleMapOutline } from '../svg/MuscleMapOutline';
+
 interface MuscleDiagramProps {
   fatigueData: { [key: string]: number };
   onMuscleClick?: (muscle: string) => void;
@@ -15,22 +17,28 @@ export function MuscleDiagram({ fatigueData, onMuscleClick }: MuscleDiagramProps
   };
 
   const muscles = [
-    { id: 'shoulders', label: '肩', x: 150, y: 60, width: 80, height: 30 },
-    { id: 'chest', label: '胸部', x: 100, y: 100, width: 60, height: 40 },
-    { id: 'back', label: '背中', x: 220, y: 100, width: 60, height: 40 },
-    { id: 'abs', label: '腹部', x: 105, y: 150, width: 50, height: 35 },
-    { id: 'arms', label: '腕', x: 70, y: 110, width: 25, height: 50 },
-    { id: 'forearms', label: '前腕', x: 70, y: 165, width: 25, height: 40 },
-    { id: 'legs', label: '脚', x: 140, y: 190, width: 40, height: 60 },
+    { id: 'head', label: '頭部', x: 170, y: 45, width: 40, height: 30 },
+    { id: 'shoulders', label: '肩', x: 145, y: 75, width: 90, height: 25 },
+    { id: 'chest', label: '胸部', x: 145, y: 100, width: 90, height: 35 },
+    { id: 'back', label: '背中', x: 145, y: 140, width: 90, height: 35 },
+    { id: 'abs', label: '腹部', x: 150, y: 175, width: 80, height: 30 },
+    { id: 'biceps', label: '上腕', x: 115, y: 110, width: 25, height: 40 },
+    { id: 'triceps', label: '上腕後', x: 260, y: 110, width: 25, height: 40 },
+    { id: 'forearms', label: '前腕', x: 100, y: 150, width: 25, height: 40 },
+    { id: 'forearms_right', label: '前腕(右)', x: 275, y: 150, width: 25, height: 40 },
+    { id: 'thighs', label: '大腿', x: 160, y: 210, width: 25, height: 60 },
+    { id: 'calves', label: '下腿', x: 160, y: 280, width: 25, height: 60 },
+    { id: 'thighs_right', label: '大腿(右)', x: 210, y: 210, width: 25, height: 60 },
+    { id: 'calves_right', label: '下腿(右)', x: 210, y: 280, width: 25, height: 60 },
   ];
 
   return (
     <div className="flex flex-col items-center">
       <h2 className="text-2xl font-bold mb-6">体図面</h2>
-      <svg width="400" height="350" className="border border-gray-300 rounded">
+      <svg width="400" height="420" className="border border-gray-300 rounded bg-white">
         {/* 体の輪郭 */}
-        <circle cx="190" cy="60" r="20" fill={getFatigueColor(fatigueData.head || 0)} />
-        
+        <MuscleMapOutline />
+
         {/* 筋肉グループ */}
         {muscles.map((muscle) => (
           <g key={muscle.id}>

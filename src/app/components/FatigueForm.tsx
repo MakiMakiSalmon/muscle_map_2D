@@ -26,13 +26,19 @@ export function FatigueForm({ selectedMuscle, onSubmit, isLoading = false }: Fat
   };
 
   const muscleLabels: { [key: string]: string } = {
+    head: '頭部',
+    shoulders: '肩',
     chest: '胸部',
     back: '背中',
-    shoulders: '肩',
-    arms: '腕',
-    forearms: '前腕',
     abs: '腹部',
-    legs: '脚',
+    biceps: '上腕',
+    triceps: '上腕後',
+    forearms: '前腕',
+    forearms_right: '前腕(右)',
+    thighs: '大腿',
+    calves: '下腿',
+    thighs_right: '大腿(右)',
+    calves_right: '下腿(右)',
   };
 
   return (

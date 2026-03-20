@@ -2,13 +2,19 @@ import { NextRequest, NextResponse } from 'next/server';
 
 // in-memory storage (本番環境ではデータベースを使用)
 let fatigueData: { [key: string]: number } = {
+  head: 0,
+  shoulders: 0,
   chest: 0,
   back: 0,
-  shoulders: 0,
-  arms: 0,
-  forearms: 0,
   abs: 0,
-  legs: 0,
+  biceps: 0,
+  triceps: 0,
+  forearms: 0,
+  forearms_right: 0,
+  thighs: 0,
+  calves: 0,
+  thighs_right: 0,
+  calves_right: 0,
 };
 
 // GET: 疲労度データを取得
