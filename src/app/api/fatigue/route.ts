@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { handleFirebaseError } from '@/lib/firebaseErrorHandler';
 
 // in-memory storage (本番環境ではデータベースを使用)
 const fatigueData: { [key: string]: number } = {
@@ -19,29 +20,55 @@ const fatigueData: { [key: string]: number } = {
 
 // GET: 疲労度データを取得
 export async function GET() {
-  return NextResponse.json(fatigueData);
+  try {
+    // TODO: Firestore から実装予定
+    // const uid = request.headers.get('X-User-ID');
+    // if (!uid) {
+    //   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    // }
+
+    return NextResponse.json(fatigueData);
+  } catch (error) {
+    const errorResponse = handleFirebaseError(error);
+    return NextResponse.json(
+      { error: errorResponse.error, code: errorResponse.code },
+      { status: errorResponse.statusCode }
+    );
+  }
 }
 
 // POST: 疲労度データを保存
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    
-    // 特定の筋肉グループの疲労度を更新
+
+    // 特定の筋肉グループの疲労度を更新（置換モード）
     if (body.muscle && typeof body.tire === 'number') {
       fatigueData[body.muscle] = Math.min(100, Math.max(0, body.tire));
     }
-    
+
     return NextResponse.json({ success: true, data: fatigueData });
-  } catch {
-    return NextResponse.json({ error: 'Invalid request' }, { status: 400 });
+  } catch (error) {
+    const errorResponse = handleFirebaseError(error);
+    return NextResponse.json(
+      { error: errorResponse.error, code: errorResponse.code },
+      { status: errorResponse.statusCode }
+    );
   }
 }
 
 // PUT: すべての疲労度データをリセット
 export async function PUT() {
-  Object.keys(fatigueData).forEach(key => {
-    fatigueData[key] = 0;
-  });
-  return NextResponse.json({ success: true, data: fatigueData });
+  try {
+    Object.keys(fatigueData).forEach(key => {
+      fatigueData[key] = 0;
+    });
+    return NextResponse.json({ success: true, data: fatigueData });
+  } catch (error) {
+    const errorResponse = handleFirebaseError(error);
+    return NextResponse.json(
+      { error: errorResponse.error, code: errorResponse.code },
+      { status: errorResponse.statusCode }
+    );
+  }
 }

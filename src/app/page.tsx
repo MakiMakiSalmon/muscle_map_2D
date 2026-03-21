@@ -1,24 +1,55 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/context/AuthContext';
 import { MuscleDiagram } from './components/MuscleDiagram';
 import { FatigueForm } from './components/FatigueForm';
+import { ServiceErrorScreen } from './components/ServiceErrorScreen';
 
 export default function Home() {
+  const router = useRouter();
+  const { user, loading, logout } = useAuth();
   const [fatigueData, setFatigueData] = useState<{ [key: string]: number }>({});
   const [selectedMuscle, setSelectedMuscle] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [serviceError, setServiceError] = useState<{ code: string; message: string; isRateLimited: boolean } | null>(null);
+
+  // 未ログイン時はログインページへリダイレクト
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push('/login');
+    }
+  }, [user, loading, router]);
 
   // 初期データ取得
   useEffect(() => {
-    fetchFatigueData();
-  }, []);
+    if (user) {
+      fetchFatigueData();
+    }
+  }, [user]);
 
   const fetchFatigueData = async () => {
     try {
       const response = await fetch('/api/fatigue');
+      
+      if (response.status === 503) {
+        const errorData = await response.json();
+        setServiceError({
+          code: errorData.code || 'SERVICE_ERROR',
+          message: errorData.error || 'Service temporarily unavailable',
+          isRateLimited: errorData.isRateLimited || false,
+        });
+        return;
+      }
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      
       const data = await response.json();
       setFatigueData(data);
+      setServiceError(null);
     } catch (error) {
       console.error('Error fetching fatigue data:', error);
     }
@@ -37,9 +68,20 @@ export default function Home() {
         body: JSON.stringify({ muscle, tire: fatigue }),
       });
       
+      if (response.status === 503) {
+        const errorData = await response.json();
+        setServiceError({
+          code: errorData.code || 'SERVICE_ERROR',
+          message: errorData.error || 'Service temporarily unavailable',
+          isRateLimited: errorData.isRateLimited || false,
+        });
+        return;
+      }
+      
       if (response.ok) {
         const updatedData = await response.json();
         setFatigueData(updatedData.data);
+        setServiceError(null);
       }
     } catch (error) {
       console.error('Error saving fatigue:', error);
@@ -53,23 +95,68 @@ export default function Home() {
     
     try {
       const response = await fetch('/api/fatigue', { method: 'PUT' });
+      
+      if (response.status === 503) {
+        const errorData = await response.json();
+        setServiceError({
+          code: errorData.code || 'SERVICE_ERROR',
+          message: errorData.error || 'Service temporarily unavailable',
+          isRateLimited: errorData.isRateLimited || false,
+        });
+        return;
+      }
+      
       if (response.ok) {
         const data = await response.json();
         setFatigueData(data.data);
         setSelectedMuscle(null);
+        setServiceError(null);
       }
     } catch (error) {
       console.error('Error resetting data:', error);
     }
   };
 
+  const handleLogout = async () => {
+    await logout();
+    router.push('/login');
+  };
+
+  // ロード中は何も表示しない
+  if (loading) {
+    return <div>ロード中...</div>;
+  }
+
+  // ログインしていないなら何も表示しない（useEffect でリダイレクト中）
+  if (!user) {
+    return null;
+  }
+
+  // サービスエラー時に error screen を表示
+  if (serviceError) {
+    return (
+      <ServiceErrorScreen 
+        isRateLimited={serviceError.isRateLimited}
+        onDismiss={() => setServiceError(null)}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       {/* ヘッダー */}
       <header className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 py-6">
-          <h1 className="text-4xl font-bold text-gray-900">🦵 筋肉疲労マップ 2D</h1>
-          <p className="text-gray-600 mt-2">各部位の疲労度を手動で入力して管理します</p>
+        <div className="max-w-7xl mx-auto px-4 py-6 flex justify-between items-center">
+          <div>
+            <h1 className="text-4xl font-bold text-gray-900">🦵 筋肉疲労マップ 2D</h1>
+            <p className="text-gray-600 mt-2 text-sm">ユーザー: {user.email}</p>
+          </div>
+          <button
+            onClick={handleLogout}
+            className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded transition"
+          >
+            ログアウト
+          </button>
         </div>
       </header>
 
