@@ -45,6 +45,10 @@ export function ServiceErrorScreen({ code, error, isRateLimited = false, onDismi
           </div>
         )}
 
+        {error && (
+          <p className="text-xs text-gray-500 mb-4 break-words">{error}</p>
+        )}
+
         <div className="flex gap-3">
           {onDismiss && (
             <button

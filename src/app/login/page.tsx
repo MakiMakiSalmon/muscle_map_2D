@@ -13,7 +13,7 @@ export default function LoginPage() {
 
   // ログイン済み時はダッシュボードへリダイレクト
   if (user) {
-    router.push('/dashboard');
+    router.push('/');
     return null;
   }
 
@@ -28,7 +28,7 @@ export default function LoginPage() {
       } else {
         await login();
       }
-      router.push('/dashboard');
+      router.push('/');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'エラーが発生しました');
     } finally {

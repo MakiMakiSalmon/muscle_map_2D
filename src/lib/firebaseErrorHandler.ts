@@ -10,9 +10,31 @@ export interface FirebaseErrorResponse {
   isRateLimited: boolean;
 }
 
-export function handleFirebaseError(error: any): FirebaseErrorResponse {
-  const errorCode = error?.code || 'UNKNOWN_ERROR';
-  const errorMessage = error?.message || 'Unknown Firebase error';
+interface ErrorLike {
+  code?: string;
+  message?: string;
+}
+
+function toErrorLike(error: unknown): ErrorLike {
+  if (typeof error === 'object' && error !== null) {
+    const maybeError = error as ErrorLike;
+    return {
+      code: typeof maybeError.code === 'string' ? maybeError.code : undefined,
+      message: typeof maybeError.message === 'string' ? maybeError.message : undefined,
+    };
+  }
+
+  if (typeof error === 'string') {
+    return { message: error };
+  }
+
+  return {};
+}
+
+export function handleFirebaseError(error: unknown): FirebaseErrorResponse {
+  const normalized = toErrorLike(error);
+  const errorCode = normalized.code || 'UNKNOWN_ERROR';
+  const errorMessage = normalized.message || 'Unknown Firebase error';
 
   // Firestore 無料枠超過時のエラーパターン
   if (
@@ -58,9 +80,10 @@ export function handleFirebaseError(error: any): FirebaseErrorResponse {
   };
 }
 
-export function isRateLimitError(error: any): boolean {
-  const errorCode = error?.code || '';
-  const errorMessage = error?.message || '';
+export function isRateLimitError(error: unknown): boolean {
+  const normalized = toErrorLike(error);
+  const errorCode = normalized.code || '';
+  const errorMessage = normalized.message || '';
   
   return (
     errorCode === 'RESOURCE_EXHAUSTED' ||

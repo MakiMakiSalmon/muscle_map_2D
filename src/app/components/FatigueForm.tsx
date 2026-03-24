@@ -4,24 +4,33 @@ import { useState } from 'react';
 
 interface FatigueFormProps {
   selectedMuscle: string | null;
-  onSubmit: (muscle: string, fatigue: number) => Promise<void>;
+  onSubmit: (muscle: string, fatigue: number) => Promise<boolean>;
   isLoading?: boolean;
 }
 
 export function FatigueForm({ selectedMuscle, onSubmit, isLoading = false }: FatigueFormProps) {
   const [fatigue, setFatigue] = useState(50);
   const [submitted, setSubmitted] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedMuscle) return;
     
     try {
-      await onSubmit(selectedMuscle, fatigue);
-      setSubmitted(true);
-      setTimeout(() => setSubmitted(false), 2000);
+      setErrorMessage(null);
+      const ok = await onSubmit(selectedMuscle, fatigue);
+      if (ok) {
+        setSubmitted(true);
+        setTimeout(() => setSubmitted(false), 2000);
+      } else {
+        setSubmitted(false);
+        setErrorMessage('保存に失敗しました。ログイン状態やFirebase設定を確認してください。');
+      }
     } catch (error) {
       console.error('Error saving fatigue data:', error);
+      setSubmitted(false);
+      setErrorMessage('保存中にエラーが発生しました。時間をおいて再試行してください。');
     }
   };
 
@@ -89,6 +98,12 @@ export function FatigueForm({ selectedMuscle, onSubmit, isLoading = false }: Fat
               </div>
             )}
           </div>
+
+          {errorMessage && (
+            <div className="bg-red-100 border border-red-300 text-red-800 px-4 py-2 rounded text-sm">
+              {errorMessage}
+            </div>
+          )}
 
           <div className="mt-6 p-4 bg-gray-50 rounded text-sm">
             <p className="font-semibold mb-2">疲労度レベル</p>

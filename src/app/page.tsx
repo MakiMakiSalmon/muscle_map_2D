@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { MuscleDiagram } from './components/MuscleDiagram';
@@ -22,16 +22,28 @@ export default function Home() {
     }
   }, [user, loading, router]);
 
-  // 初期データ取得
-  useEffect(() => {
-    if (user) {
-      fetchFatigueData();
+  const getAuthHeaders = useCallback(async (includeJson = false): Promise<HeadersInit> => {
+    if (!user) {
+      throw new Error('UNAUTHORIZED');
     }
+
+    const token = await user.getIdToken();
+    return {
+      ...(includeJson ? { 'Content-Type': 'application/json' } : {}),
+      Authorization: `Bearer ${token}`,
+    };
   }, [user]);
 
-  const fetchFatigueData = async () => {
+  const fetchFatigueData = useCallback(async () => {
     try {
-      const response = await fetch('/api/fatigue');
+      const headers = await getAuthHeaders();
+      const response = await fetch('/api/fatigue', { headers });
+
+      if (response.status === 401) {
+        await logout();
+        router.push('/login');
+        return;
+      }
       
       if (response.status === 503) {
         const errorData = await response.json();
@@ -53,20 +65,34 @@ export default function Home() {
     } catch (error) {
       console.error('Error fetching fatigue data:', error);
     }
-  };
+  }, [getAuthHeaders, logout, router]);
+
+  // 初期データ取得
+  useEffect(() => {
+    if (user) {
+      void fetchFatigueData();
+    }
+  }, [user, fetchFatigueData]);
 
   const handleMuscleClick = (muscle: string) => {
     setSelectedMuscle(muscle);
   };
 
-  const handleSaveFatigue = async (muscle: string, fatigue: number) => {
+  const handleSaveFatigue = async (muscle: string, fatigue: number): Promise<boolean> => {
     setIsLoading(true);
     try {
+      const headers = await getAuthHeaders(true);
       const response = await fetch('/api/fatigue', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({ muscle, tire: fatigue }),
       });
+
+      if (response.status === 401) {
+        await logout();
+        router.push('/login');
+        return false;
+      }
       
       if (response.status === 503) {
         const errorData = await response.json();
@@ -75,16 +101,31 @@ export default function Home() {
           message: errorData.error || 'Service temporarily unavailable',
           isRateLimited: errorData.isRateLimited || false,
         });
-        return;
+        return false;
       }
       
       if (response.ok) {
         const updatedData = await response.json();
         setFatigueData(updatedData.data);
         setServiceError(null);
+        return true;
       }
+
+      const errorData = await response.json().catch(() => ({}));
+      setServiceError({
+        code: errorData.code || `HTTP_${response.status}`,
+        message: errorData.error || '保存に失敗しました。Firebase Adminの設定を確認してください。',
+        isRateLimited: false,
+      });
+      return false;
     } catch (error) {
       console.error('Error saving fatigue:', error);
+      setServiceError({
+        code: 'SAVE_FAILED',
+        message: '保存処理に失敗しました。ネットワークまたはFirebase設定を確認してください。',
+        isRateLimited: false,
+      });
+      return false;
     } finally {
       setIsLoading(false);
     }
@@ -94,7 +135,14 @@ export default function Home() {
     if (!confirm('すべての疲労度をリセットしますか？')) return;
     
     try {
-      const response = await fetch('/api/fatigue', { method: 'PUT' });
+      const headers = await getAuthHeaders();
+      const response = await fetch('/api/fatigue', { method: 'PUT', headers });
+
+      if (response.status === 401) {
+        await logout();
+        router.push('/login');
+        return;
+      }
       
       if (response.status === 503) {
         const errorData = await response.json();
