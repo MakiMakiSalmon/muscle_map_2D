@@ -40,3 +40,13 @@ yarn-error.log*
 
 # OS
 Thumbs.db
+
+# Claude Code local settings
+.claude/
+
+# Vercel
+.vercel/
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
