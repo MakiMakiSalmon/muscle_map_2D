@@ -45,14 +45,15 @@
 **ブランチ**: `feat/step-1-domain`
 
 **主な成果物**:
-- `src/types/domain.ts` — `MuscleId`・`MuscleGroup`・`FatigueSnapshot`・`CurrentFatigue`・`WorkoutSet`・`WorkoutExercise`・`WorkoutSession` 等のドメイン型
-- `src/lib/fatigue/muscles.ts` — `MUSCLE_IDS`・`MUSCLE_RECOVERY_HOURS`・`MUSCLE_GROUP_MAP`・16筋肉定数
+- `src/types/domain.ts` — `MuscleId`・`MuscleGroup`・`FatigueSnapshot`・`CurrentFatigue`・`WorkoutSet`・`WorkoutExercise`・`WorkoutSession`・`MUSCLE_IDS`・`MUSCLE_RECOVERY_HOURS`・`MUSCLE_GROUP_MAP` 等
 - `src/lib/fatigue/decay.ts` — `calcDecayedValue(snapshot, now)` 純粋関数
-- `src/lib/fatigue/color.ts` — `fatigueToColor(value)` 純粋関数
-- `src/lib/workout/impact.ts` — `applyWorkoutToFatigue(session, snapshots)` 純粋関数
+- `src/lib/fatigue/colorMap.ts` — `fatigueToColor(value)` 純粋関数
+- `src/lib/fatigue/getLatestSnapshot.ts` — 筋肉ごとの最新スナップショット取得
+- `src/lib/workout/fatigueImpact.ts` — 種目の疲労インパクト計算
+- `src/lib/workout/applyWorkoutToFatigue.ts` — ワークアウトを疲労値に適用する純粋関数
 
 **テスト対象**（同 PR 内）:
-- `decay.ts`・`color.ts`・`impact.ts` の各純粋関数に対する Vitest ユニットテスト
+- `decay.ts`・`colorMap.ts`・`fatigueImpact.ts`・`applyWorkoutToFatigue.ts` の各純粋関数に対する Vitest ユニットテスト
 
 **依存**: Step 0（Vitest 基盤）
 

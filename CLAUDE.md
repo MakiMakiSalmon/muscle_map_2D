@@ -215,6 +215,20 @@ git branch --merged ver2.0 | grep -E '^\s+(feat|fix|chore|test|docs)/' | xargs g
 実装着手前にこの表と照合すること。既存 Step で作成済みのファイルは別 Step で再作成しない。
 
 現在の進捗は `docs/step-status.md`（gitignore 対象・ローカルのみ）を参照。
+ファイルが存在しない場合は下記フォーマットで作成し、完了済み Step を「完了」に更新する。
+
+```markdown
+# Step 進捗（ローカル管理）
+| Step | 状態 | 内容 |
+|------|------|------|
+| 0 | 完了 | 足場 |
+| 1 | 完了 | ドメイン型・定数・純粋関数 |
+| 2 | 完了 | Firestore スキーマ・Rules・Indexes |
+| 3 | 未着手 | API Route |
+| 4 | 未着手 | Zustand ストア・TanStack Query フック |
+| 5 | 未着手 | UI コンポーネント |
+| 6 | 未着手 | シードスクリプト・CI/CD・Vercel デプロイ |
+```
 
 | Step | 対象ファイル（初回作成） |
 |------|----------------------|
