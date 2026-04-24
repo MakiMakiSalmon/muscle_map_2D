@@ -1,5 +1,3 @@
-import { describe, expect, it } from "vitest";
-
 describe("test infrastructure sanity", () => {
   it("Vitest + TypeScript が動作する", () => {
     expect(1 + 1).toBe(2);
