@@ -9,21 +9,21 @@
 
 ## 工程一覧
 
-| Step | ブランチ名 | 内容 | 設計書参照 | 状態 |
-|------|-----------|------|-----------|------|
-| 0 | `feat/step-0-scaffold` | 足場 | §11, §19 | ✅ 完了（PR#2 レビュー済） |
-| 1 | `feat/step-1-domain` | ドメイン型・定数・純粋関数 | §1, §4-1, §4-2, §8 | 🔲 未着手 |
-| 2 | `feat/step-2-firestore` | Firestoreスキーマ・Rules・Indexes | §2, §19-2 | 🔲 未着手 |
-| 3 | `feat/step-3-api` | API Route（withAuth・各エンドポイント） | §3, §15 | 🔲 未着手 |
-| 4 | `feat/step-4-state` | Zustand ストア・TanStack Query フック | §5, §6, §16 | 🔲 未着手 |
-| 5 | `feat/step-5-ui` | UI コンポーネント（体図・スライダー・モーダル・履歴） | §7, §17 | 🔲 未着手 |
-| 6 | `feat/step-6-ops` | シードスクリプト・CI/CD・Vercel デプロイ | §11, §13 | 🔲 未着手 |
+| Step | ブランチ名 | 内容 | 設計書参照 |
+|------|-----------|------|-----------|
+| 0 | `feat/step-0-scaffold` | 足場 | §11, §19 |
+| 1 | `feat/step-1-domain` | ドメイン型・定数・純粋関数 | §1, §4-1, §4-2, §8 |
+| 2 | `feat/step-2-firestore` | Firestoreスキーマ・Rules・Indexes | §2, §19-2 |
+| 3 | `feat/step-3-api` | API Route（withAuth・各エンドポイント） | §3, §15 |
+| 4 | `feat/step-4-state` | Zustand ストア・TanStack Query フック | §5, §6, §16 |
+| 5 | `feat/step-5-ui` | UI コンポーネント（体図・スライダー・モーダル・履歴） | §7, §17 |
+| 6 | `feat/step-6-ops` | シードスクリプト・CI/CD・Vercel デプロイ | §11, §13 |
 
 ---
 
 ## 各 Step の詳細
 
-### Step 0 — 足場 ✅
+### Step 0 — 足場
 
 **ブランチ**: `feat/step-0-scaffold`
 
@@ -45,14 +45,15 @@
 **ブランチ**: `feat/step-1-domain`
 
 **主な成果物**:
-- `src/types/domain.ts` — `MuscleId`・`MuscleGroup`・`FatigueSnapshot`・`CurrentFatigue`・`WorkoutSet`・`WorkoutExercise`・`WorkoutSession` 等のドメイン型
-- `src/lib/fatigue/muscles.ts` — `MUSCLE_IDS`・`MUSCLE_RECOVERY_HOURS`・`MUSCLE_GROUP_MAP`・16筋肉定数
+- `src/types/domain.ts` — `MuscleId`・`MuscleGroup`・`FatigueSnapshot`・`CurrentFatigue`・`WorkoutSet`・`WorkoutExercise`・`WorkoutSession`・`MUSCLE_IDS`・`MUSCLE_RECOVERY_HOURS`・`MUSCLE_GROUP_MAP` 等
 - `src/lib/fatigue/decay.ts` — `calcDecayedValue(snapshot, now)` 純粋関数
-- `src/lib/fatigue/color.ts` — `fatigueToColor(value)` 純粋関数
-- `src/lib/workout/impact.ts` — `applyWorkoutToFatigue(session, snapshots)` 純粋関数
+- `src/lib/fatigue/colorMap.ts` — `fatigueToColor(value)` 純粋関数
+- `src/lib/fatigue/getLatestSnapshot.ts` — 筋肉ごとの最新スナップショット取得
+- `src/lib/workout/fatigueImpact.ts` — 種目の疲労インパクト計算
+- `src/lib/workout/applyWorkoutToFatigue.ts` — ワークアウトを疲労値に適用する純粋関数
 
 **テスト対象**（同 PR 内）:
-- `decay.ts`・`color.ts`・`impact.ts` の各純粋関数に対する Vitest ユニットテスト
+- `decay.ts`・`colorMap.ts`・`fatigueImpact.ts`・`applyWorkoutToFatigue.ts` の各純粋関数に対する Vitest ユニットテスト
 
 **依存**: Step 0（Vitest 基盤）
 

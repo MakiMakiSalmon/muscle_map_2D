@@ -130,6 +130,7 @@ useFatigueWithDecay フックで体図の色をクライアント側再計算
 3. CI（lint + test + typecheck + build）パス確認
 4. **squash merge** で `ver2.0` に取り込む（履歴を線形に保つ）
 5. マージ後、feat ブランチは削除
+6. Step 実装 PR の場合: `docs/step-status.md`（gitignore 対象）の当該 Step の状態を「完了」に更新する
 
 ### PR タイトル・本文テンプレート
 
@@ -199,3 +200,44 @@ git branch --merged ver2.0 | grep -E '^\s+(feat|fix|chore|test|docs)/' | xargs g
 - `npm run lint && npm run test && npm run typecheck` が通らないコミットをプッシュしない
 - 設計書上「MVP スコープ外」と明記された機能（ワークアウト編集・削除等）を勝手に実装しない
 - 機能追加のアイデアが湧いても `docs/function.md` の範囲外なら **実装せずメモに留める**
+
+### Step 着手前の確認ルール
+
+各 Step の実装を開始する前に、必ず次の順序で確認する:
+
+1. **作成・変更予定ファイルを列挙する** — ゼロから書き出し、省略しない
+2. **各ファイルが当該 Step のスコープ内であることを確認する** — 下の「Step ごとの対象ファイル」表と照合する
+3. **スコープ外のファイルは絶対に作らない** — 「ついでに」は禁止。別 Step のファイルが必要と判断した場合は作業を止めてユーザーに相談する
+4. **ユーザーに列挙内容を提示し、承認を得てから実装を開始する**
+
+### Step ごとの対象ファイル（このStepで初めて作成するファイル）
+
+実装着手前にこの表と照合すること。既存 Step で作成済みのファイルは別 Step で再作成しない。
+
+現在の進捗は `docs/step-status.md`（gitignore 対象・ローカルのみ）を参照。
+ファイルが存在しない場合は下記フォーマットで作成し、完了済み Step を「完了」に更新する。
+
+```markdown
+# Step 進捗（ローカル管理）
+| Step | 状態 | 内容 |
+|------|------|------|
+| 0 | 完了 | 足場 |
+| 1 | 完了 | ドメイン型・定数・純粋関数 |
+| 2 | 完了 | Firestore スキーマ・Rules・Indexes |
+| 3 | 未着手 | API Route |
+| 4 | 未着手 | Zustand ストア・TanStack Query フック |
+| 5 | 未着手 | UI コンポーネント |
+| 6 | 未着手 | シードスクリプト・CI/CD・Vercel デプロイ |
+```
+
+| Step | 対象ファイル（初回作成） |
+|------|----------------------|
+| 0 | `next.config.mjs`, `tailwind.config.ts`, `postcss.config.mjs`, `tsconfig.json`, `vitest.config.ts`, `.eslintrc.json`, `vercel.json`, `.github/workflows/ci.yml`, `src/test/setup.ts`, `src/test/sanity.test.ts`, `src/test/mocks/handlers.ts`, `src/test/mocks/server.ts`, `src/app/layout.tsx`, `src/app/page.tsx`, `src/app/globals.css` |
+| 1 | `src/types/domain.ts`, `src/types/__tests__/domain.test.ts`, `src/lib/fatigue/decay.ts`, `src/lib/fatigue/colorMap.ts`, `src/lib/fatigue/getLatestSnapshot.ts`, `src/lib/fatigue/__tests__/decay.test.ts`, `src/lib/fatigue/__tests__/colorMap.test.ts`, `src/lib/workout/fatigueImpact.ts`, `src/lib/workout/applyWorkoutToFatigue.ts`, `src/lib/workout/__tests__/fatigueImpact.test.ts`, `src/lib/workout/__tests__/applyWorkoutToFatigue.test.ts` |
+| 2 | `firebase.json`, `firestore.rules`, `firestore.indexes.json`, `src/lib/firebase/admin.ts`, `src/lib/firebase/client.ts`, `.env.example` |
+| 3 | `src/lib/auth/verifyUser.ts`, `src/lib/auth/withAuth.ts`, `src/app/api/fatigue/current/route.ts`, `src/app/api/fatigue/history/route.ts`, `src/app/api/fatigue/reset/route.ts`, `src/app/api/workout/route.ts`, `src/app/api/exercises/route.ts` |
+| 4 | `src/stores/uiStore.ts`, `src/hooks/useFatigue.ts`, `src/hooks/useFatigueWithDecay.ts`, `src/hooks/useWorkout.ts`, `src/hooks/useExercises.ts` |
+| 5 | `src/components/layout/` 配下, `src/components/body-diagram/` 配下, `src/components/fatigue-panel/` 配下, `src/components/workout/` 配下, `src/components/ui/` 配下 |
+| 6 | `data/exercises.json`, `scripts/seedExercises.ts`, `.github/workflows/deploy.yml` |
+
+※ Step 2 のファイル群は Step 0 で先行作成・実装済み（実装完了）。Step 2 での再作成は不要。
