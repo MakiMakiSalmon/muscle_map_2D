@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, type Mock } from 'vitest';
+import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import { applyWorkoutToFatigue } from '@/lib/workout/applyWorkoutToFatigue';
 import type { FatigueSnapshot } from '@/types/domain';
 
@@ -13,6 +13,9 @@ const now = new Date('2026-04-24T12:00:00.000Z');
 const sessionId = 'session-001';
 
 describe('applyWorkoutToFatigue', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
   it('スナップショットなし → 0 + delta', async () => {
     (getLatestSnapshot as Mock).mockResolvedValue(null);
 
