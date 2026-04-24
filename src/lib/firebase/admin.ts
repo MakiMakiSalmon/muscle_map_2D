@@ -2,14 +2,7 @@ import { cert, getApps, initializeApp } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
 import { getFirestore } from "firebase-admin/firestore";
 
-/**
- * Firebase Admin SDK の singleton 初期化。
- * モジュールレベルで一度だけ評価され、Vercel の warm instance や Next.js の
- * HMR でも再初期化されない。詳細設計 §19-2 参照。
- *
- * Route Handler からは `adminAuth` / `adminDb` を直接 import して使うこと。
- * `initializeApp` を Route Handler 側で呼んではいけない。
- */
+// singleton — Route Handler から initializeApp を呼ばないこと（§19-2）
 const app =
   getApps()[0] ??
   initializeApp({
