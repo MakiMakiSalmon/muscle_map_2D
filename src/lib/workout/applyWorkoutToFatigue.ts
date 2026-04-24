@@ -1,5 +1,5 @@
 import type { Firestore } from 'firebase-admin/firestore';
-import { type MuscleId, type FatigueSnapshot } from '@/types/domain';
+import { type MuscleId, type FatigueSnapshotInput } from '@/types/domain';
 import { applyDecay } from '@/lib/fatigue/decay';
 import { getLatestSnapshot } from '@/lib/fatigue/getLatestSnapshot';
 
@@ -9,7 +9,7 @@ export async function applyWorkoutToFatigue(
   workoutSessionId: string,
   db: Firestore,
   now = new Date(),
-): Promise<Array<Pick<FatigueSnapshot, 'muscleId' | 'value' | 'source' | 'workoutSessionId'> & { recordedAt: Date }>> {
+): Promise<FatigueSnapshotInput[]> {
   const entries = Object.entries(impacts) as [MuscleId, number][];
 
   const snapshots = await Promise.all(

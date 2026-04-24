@@ -38,6 +38,12 @@ describe('computeFatigueImpact', () => {
     expect(result.chest).toBe(80);
   });
 
+  it('secondary のキャップ: 6×10 でも secondary は 40 が上限', () => {
+    const result = computeFatigueImpact(benchPress, 6, 10);
+    expect(result.shoulders_left).toBe(40);
+    expect(result.triceps_left).toBe(40);
+  });
+
   it('中央筋は単一IDに加算される', () => {
     const result = computeFatigueImpact(benchPress, 3, 10);
     expect(result.chest).toBe(40);
@@ -92,5 +98,10 @@ describe('mergeImpacts', () => {
       { chest: 40 },
     ]);
     expect(result.chest).toBe(120);
+  });
+
+  it('合算結果は100を超えてよい（クランプは呼び出し側が担当）', () => {
+    const result = mergeImpacts([{ chest: 80 }, { chest: 80 }]);
+    expect(result.chest).toBe(160);
   });
 });

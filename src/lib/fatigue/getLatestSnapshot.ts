@@ -23,6 +23,6 @@ export async function getLatestSnapshot(
     value: data.value as number,
     recordedAt: data.recordedAt.toDate(),
     source: data.source as 'manual' | 'workout',
-    workoutSessionId: data.workoutSessionId as string | null,
+    workoutSessionId: (data.workoutSessionId as string | undefined) ?? null,
   };
 }
