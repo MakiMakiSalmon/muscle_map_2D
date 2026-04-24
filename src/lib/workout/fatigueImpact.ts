@@ -15,6 +15,7 @@ export function computeFatigueImpact(
   const impacts: Partial<Record<MuscleId, number>> = {};
   for (const group of exercise.primaryMuscles) {
     for (const muscleId of expandMuscleGroup(group)) {
+      // primaryMuscles に重複があれば上書き（exercises.json では重複なし）
       impacts[muscleId] = primaryDelta;
     }
   }

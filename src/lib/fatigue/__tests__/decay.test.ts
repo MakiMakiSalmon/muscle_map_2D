@@ -41,6 +41,12 @@ describe('applyDecay', () => {
     const result = applyDecay(100, hoursAgo(1), 'chest');
     expect(result).toBe(98);
   });
+
+  it('未来タイムスタンプでも savedValue を超えない（時計ズレ・データ不整合対策）', () => {
+    const future = new Date(Date.now() + 10 * 3600 * 1000);
+    const result = applyDecay(80, future, 'chest');
+    expect(result).toBeLessThanOrEqual(80);
+  });
 });
 
 describe('calcRecoveryHoursRemaining', () => {

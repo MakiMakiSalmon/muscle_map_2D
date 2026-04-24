@@ -9,7 +9,7 @@ export function applyDecay(
   const recoveryHours = MUSCLE_RECOVERY_HOURS[muscleId];
   const elapsedHours = (now.getTime() - recordedAt.getTime()) / (1000 * 3600);
   const ratio = Math.max(0, 1 - elapsedHours / recoveryHours);
-  return Math.round(savedValue * ratio);
+  return Math.min(savedValue, Math.round(savedValue * ratio));
 }
 
 export function calcRecoveryHoursRemaining(

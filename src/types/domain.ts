@@ -79,7 +79,7 @@ export type FatigueSnapshotInput = Pick<FatigueSnapshot, 'muscleId' | 'value' | 
 export interface CurrentFatigueEntry {
   savedValue: number;
   currentValue: number;
-  recordedAt: string;
+  recordedAt: string;               // ISO 8601 UTC
   recoveryHoursRemaining: number;
 }
 
@@ -102,7 +102,7 @@ export interface WorkoutExerciseInput {
 
 export interface WorkoutSession {
   id: string;
-  performedAt: string;
+  performedAt: string;              // ISO 8601 UTC
   exercises: WorkoutExerciseInput[];
 }
 
