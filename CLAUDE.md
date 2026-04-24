@@ -130,6 +130,7 @@ useFatigueWithDecay フックで体図の色をクライアント側再計算
 3. CI（lint + test + typecheck + build）パス確認
 4. **squash merge** で `ver2.0` に取り込む（履歴を線形に保つ）
 5. マージ後、feat ブランチは削除
+6. Step 実装 PR の場合: CLAUDE.md「Step ごとの対象ファイル」表の当該 Step の状態を「完了」に更新してコミットする
 
 ### PR タイトル・本文テンプレート
 
