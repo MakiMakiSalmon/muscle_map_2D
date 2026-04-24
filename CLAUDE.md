@@ -130,7 +130,7 @@ useFatigueWithDecay フックで体図の色をクライアント側再計算
 3. CI（lint + test + typecheck + build）パス確認
 4. **squash merge** で `ver2.0` に取り込む（履歴を線形に保つ）
 5. マージ後、feat ブランチは削除
-6. Step 実装 PR の場合: `step-status.md`（gitignore 対象）の当該 Step の状態を「完了」に更新する
+6. Step 実装 PR の場合: `docs/step-status.md`（gitignore 対象）の当該 Step の状態を「完了」に更新する
 
 ### PR タイトル・本文テンプレート
 
@@ -214,7 +214,7 @@ git branch --merged ver2.0 | grep -E '^\s+(feat|fix|chore|test|docs)/' | xargs g
 
 実装着手前にこの表と照合すること。既存 Step で作成済みのファイルは別 Step で再作成しない。
 
-現在の進捗は `step-status.md`（gitignore 対象・ローカルのみ）を参照。
+現在の進捗は `docs/step-status.md`（gitignore 対象・ローカルのみ）を参照。
 
 | Step | 対象ファイル（初回作成） |
 |------|----------------------|

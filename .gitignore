@@ -52,4 +52,4 @@ Thumbs.db
 next-env.d.ts
 
 # Local progress tracking
-step-status.md
+docs/step-status.md
