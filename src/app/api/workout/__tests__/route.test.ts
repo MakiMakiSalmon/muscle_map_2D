@@ -1,18 +1,19 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { NextRequest } from 'next/server';
 
-const { mockBatchSet, mockBatchCommit, mockCollection } = vi.hoisted(() => ({
+const { mockBatchSet, mockBatchCommit, mockCollection, mockVerifyIdToken } = vi.hoisted(() => ({
   mockBatchSet: vi.fn(),
   mockBatchCommit: vi.fn().mockResolvedValue(undefined),
   mockCollection: vi.fn(),
+  mockVerifyIdToken: vi.fn(),
 }));
 
 vi.mock('@/lib/firebase/admin', () => ({
-  adminAuth: { verifyIdToken: vi.fn() },
-  adminDb: {
+  adminAuth: vi.fn().mockReturnValue({ verifyIdToken: mockVerifyIdToken }),
+  adminDb: vi.fn().mockReturnValue({
     collection: mockCollection,
     batch: vi.fn(() => ({ set: mockBatchSet, commit: mockBatchCommit })),
-  },
+  }),
 }));
 
 vi.mock('@/lib/workout/applyWorkoutToFatigue', () => ({
@@ -20,10 +21,7 @@ vi.mock('@/lib/workout/applyWorkoutToFatigue', () => ({
 }));
 
 import { POST } from '../route';
-import { adminAuth } from '@/lib/firebase/admin';
 import { applyWorkoutToFatigue } from '@/lib/workout/applyWorkoutToFatigue';
-
-const mockVerifyIdToken = vi.mocked(adminAuth.verifyIdToken);
 const mockApplyWorkout = vi.mocked(applyWorkoutToFatigue);
 
 const BENCH_PRESS_DOC = {

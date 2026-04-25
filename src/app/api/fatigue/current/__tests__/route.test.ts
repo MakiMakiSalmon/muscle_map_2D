@@ -1,9 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { NextRequest } from 'next/server';
 
+const { mockVerifyIdToken } = vi.hoisted(() => ({
+  mockVerifyIdToken: vi.fn(),
+}));
+
 vi.mock('@/lib/firebase/admin', () => ({
-  adminAuth: { verifyIdToken: vi.fn() },
-  adminDb: {},
+  adminAuth: vi.fn().mockReturnValue({ verifyIdToken: mockVerifyIdToken }),
+  adminDb: vi.fn().mockReturnValue({}),
 }));
 
 vi.mock('@/lib/fatigue/getLatestSnapshot', () => ({
@@ -11,11 +15,8 @@ vi.mock('@/lib/fatigue/getLatestSnapshot', () => ({
 }));
 
 import { GET } from '../route';
-import { adminAuth } from '@/lib/firebase/admin';
 import { getLatestSnapshot } from '@/lib/fatigue/getLatestSnapshot';
 import { MUSCLE_IDS } from '@/types/domain';
-
-const mockVerifyIdToken = vi.mocked(adminAuth.verifyIdToken);
 const mockGetLatestSnapshot = vi.mocked(getLatestSnapshot);
 
 function makeRequest(token?: string) {

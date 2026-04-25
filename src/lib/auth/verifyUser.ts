@@ -16,7 +16,7 @@ export async function verifyUser(req: NextRequest): Promise<{ uid: string }> {
   }
   const idToken = authHeader.substring(7);
   try {
-    const decoded = await adminAuth.verifyIdToken(idToken);
+    const decoded = await adminAuth().verifyIdToken(idToken);
     return { uid: decoded.uid };
   } catch {
     throw new UnauthorizedError('Invalid token');

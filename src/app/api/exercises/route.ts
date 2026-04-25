@@ -15,13 +15,14 @@ export const GET = withAuth(async (req: NextRequest) => {
   const limitParam = searchParams.get('limit');
   const limit = Math.min(50, Math.max(1, parseInt(limitParam ?? '20', 10) || 20));
 
+  const db = adminDb();
   const baseQuery = q
-    ? adminDb
+    ? db
         .collection('exercises')
         .where('nameJa', '>=', q)
         .where('nameJa', '<=', q + FIRESTORE_PREFIX_SUFFIX)
         .limit(limit)
-    : adminDb.collection('exercises').limit(limit);
+    : db.collection('exercises').limit(limit);
 
   const snap = await baseQuery.get();
 

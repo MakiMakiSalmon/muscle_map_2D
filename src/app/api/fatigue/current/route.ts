@@ -12,9 +12,10 @@ import { applyDecay, calcRecoveryHoursRemaining } from '@/lib/fatigue/decay';
 export const GET = withAuth(async (_req, { uid }) => {
   const now = new Date();
 
+  const db = adminDb();
   const entries = await Promise.all(
     MUSCLE_IDS.map(async (muscleId) => {
-      const snapshot = await getLatestSnapshot(uid, muscleId, adminDb);
+      const snapshot = await getLatestSnapshot(uid, muscleId, db);
       if (!snapshot) {
         return [muscleId, {
           savedValue: 0,

@@ -1,15 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { NextRequest, NextResponse } from 'next/server';
 
+const { mockVerifyIdToken } = vi.hoisted(() => ({
+  mockVerifyIdToken: vi.fn(),
+}));
+
 vi.mock('@/lib/firebase/admin', () => ({
-  adminAuth: { verifyIdToken: vi.fn() },
-  adminDb: {},
+  adminAuth: vi.fn().mockReturnValue({ verifyIdToken: mockVerifyIdToken }),
+  adminDb: vi.fn().mockReturnValue({}),
 }));
 
 import { verifyUser, withAuth, UnauthorizedError } from '../verifyUser';
-import { adminAuth } from '@/lib/firebase/admin';
-
-const mockVerifyIdToken = vi.mocked(adminAuth.verifyIdToken);
 
 describe('verifyUser', () => {
   beforeEach(() => { vi.clearAllMocks(); });

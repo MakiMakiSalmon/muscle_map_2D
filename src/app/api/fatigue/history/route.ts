@@ -19,7 +19,7 @@ export const GET = withAuth(async (req: NextRequest, { uid }) => {
     );
   }
 
-  const snap = await adminDb
+  const snap = await adminDb()
     .collection(`users/${uid}/fatigueSnapshots`)
     .where('muscleId', '==', muscleId)
     .orderBy('recordedAt', 'desc')

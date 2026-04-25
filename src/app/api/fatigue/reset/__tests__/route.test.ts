@@ -1,26 +1,24 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { NextRequest } from 'next/server';
 
-const { mockBatchSet, mockBatchCommit } = vi.hoisted(() => ({
+const { mockBatchSet, mockBatchCommit, mockVerifyIdToken } = vi.hoisted(() => ({
   mockBatchSet: vi.fn(),
   mockBatchCommit: vi.fn().mockResolvedValue(undefined),
+  mockVerifyIdToken: vi.fn(),
 }));
 
 vi.mock('@/lib/firebase/admin', () => ({
-  adminAuth: { verifyIdToken: vi.fn() },
-  adminDb: {
+  adminAuth: vi.fn().mockReturnValue({ verifyIdToken: mockVerifyIdToken }),
+  adminDb: vi.fn().mockReturnValue({
     collection: vi.fn().mockReturnValue({
       doc: vi.fn().mockReturnValue({ id: 'auto_id' }),
     }),
     batch: vi.fn(() => ({ set: mockBatchSet, commit: mockBatchCommit })),
-  },
+  }),
 }));
 
 import { PUT } from '../route';
-import { adminAuth } from '@/lib/firebase/admin';
 import { MUSCLE_IDS } from '@/types/domain';
-
-const mockVerifyIdToken = vi.mocked(adminAuth.verifyIdToken);
 
 function makeRequest(token?: string) {
   return new NextRequest('http://localhost/api/fatigue/reset', {

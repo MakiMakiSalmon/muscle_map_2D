@@ -48,9 +48,11 @@ export const POST = withAuth(async (req: NextRequest, { uid }) => {
 
   const { performedAt, exercises } = parsed.data;
 
+  const db = adminDb();
+
   // 種目ドキュメントを並列取得（§12-4 と同様の並列化）
   const exerciseDocs = await Promise.all(
-    exercises.map((ex) => adminDb.collection('exercises').doc(ex.exerciseId).get())
+    exercises.map((ex) => db.collection('exercises').doc(ex.exerciseId).get())
   );
 
   const exerciseMap = new Map<string, Exercise>();
@@ -81,14 +83,14 @@ export const POST = withAuth(async (req: NextRequest, { uid }) => {
   );
 
   const now = new Date();
-  const sessionRef = adminDb.collection(`users/${uid}/workoutSessions`).doc();
+  const sessionRef = db.collection(`users/${uid}/workoutSessions`).doc();
   const sessionId = sessionRef.id;
 
   // 現在の減衰済み値 + delta でスナップショットを生成（§4-3）
-  const fatigueSnapshots = await applyWorkoutToFatigue(uid, impacts, sessionId, adminDb, now);
+  const fatigueSnapshots = await applyWorkoutToFatigue(uid, impacts, sessionId, db, now);
 
   // セッション + スナップショットを batch write で原子的に保存（§12-1）
-  const batch = adminDb.batch();
+  const batch = db.batch();
 
   batch.set(sessionRef, {
     performedAt: Timestamp.fromDate(new Date(performedAt)),
@@ -101,7 +103,7 @@ export const POST = withAuth(async (req: NextRequest, { uid }) => {
   });
 
   for (const snapshot of fatigueSnapshots) {
-    const snapshotRef = adminDb.collection(`users/${uid}/fatigueSnapshots`).doc();
+    const snapshotRef = db.collection(`users/${uid}/fatigueSnapshots`).doc();
     batch.set(snapshotRef, {
       muscleId: snapshot.muscleId,
       value: snapshot.value,

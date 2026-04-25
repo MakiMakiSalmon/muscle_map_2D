@@ -10,10 +10,11 @@ import { MUSCLE_IDS } from '@/types/domain';
 // 全 16 筋肉に value=0 のスナップショットを batch で一括挿入（履歴は消さない）（§3, §12-1）
 export const PUT = withAuth(async (_req, { uid }) => {
   const now = new Date();
-  const batch = adminDb.batch();
+  const db = adminDb();
+  const batch = db.batch();
 
   for (const muscleId of MUSCLE_IDS) {
-    const ref = adminDb.collection(`users/${uid}/fatigueSnapshots`).doc();
+    const ref = db.collection(`users/${uid}/fatigueSnapshots`).doc();
     batch.set(ref, {
       muscleId,
       value: 0,
