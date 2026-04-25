@@ -1172,7 +1172,7 @@ S03 の日付グルーピング（「2026-04-23」）は `formatJstDate(performe
 
 ```typescript
 import { NextRequest, NextResponse } from 'next/server';
-import { adminAuth } from '@/lib/firebase/admin';  // §19-2 の singleton
+import { adminAuth } from '@/lib/firebase/admin';  // §19-2 の lazy singleton
 import { handleFirebaseError } from '@/lib/firebase/errorHandler';
 
 export class UnauthorizedError extends Error {
