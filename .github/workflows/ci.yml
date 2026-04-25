@@ -39,3 +39,7 @@ jobs:
           NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: dummy.appspot.com
           NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: "0"
           NEXT_PUBLIC_FIREBASE_APP_ID: "1:0:web:0"
+          # Admin SDK 用ダミー値（ビルド時に initializeApp が通ればよい。実呼び出しはない）
+          FIREBASE_PROJECT_ID: dummy
+          FIREBASE_CLIENT_EMAIL: dummy@dummy.iam.gserviceaccount.com
+          FIREBASE_PRIVATE_KEY: dummy
