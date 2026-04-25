@@ -82,7 +82,7 @@
 - `src/lib/auth/withAuth.ts` — Route Handler ラッパー（認証失敗時 401）（§15）
 - `src/app/api/fatigue/current/route.ts` — GET（全筋肉の最新疲労値）
 - `src/app/api/fatigue/history/route.ts` — GET（特定筋肉の履歴）
-- `src/app/api/fatigue/reset/route.ts` — POST（疲労値リセット、`writeBatch`）
+- `src/app/api/fatigue/reset/route.ts` — PUT（疲労値リセット、`writeBatch`）
 - `src/app/api/workout/route.ts` — POST（ワークアウト保存）・GET（セッション一覧）
 - `src/app/api/exercises/route.ts` — GET（種目カタログ）
 - 全 Route Handler に `export const runtime = 'nodejs'; export const preferredRegion = 'hnd1';`
@@ -106,7 +106,8 @@
 - `src/hooks/useExercises.ts` — 種目カタログ取得（§6）
 
 **テスト対象**（同 PR 内）:
-- `useFatigueWithDecay` のユニットテスト（decay 計算が正しく更新されること）
+- `useFatigueWithDecay` のユニットテスト（decay 計算が1分ごとに正しく更新されること）
+- `useFatigue` の楽観的更新テスト（失敗時の筋肉単位ロールバック）（§10）
 
 **依存**: Step 1（ドメイン型）、Step 3（API エンドポイント）
 
