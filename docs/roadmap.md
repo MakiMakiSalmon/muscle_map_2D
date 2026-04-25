@@ -78,9 +78,13 @@
 **ブランチ**: `feat/step-3-api`
 
 **主な成果物**:
-- `src/lib/auth/withAuth.ts` — 認証 HOC（`verifyUser`・`withAuth`）
-- `src/app/api/fatigue/route.ts` — GET（現在値取得）・POST（スナップショット保存）・DELETE（リセット）
-- `src/app/api/workout/route.ts` — POST（ワークアウト保存）・GET（一覧）
+- `src/lib/auth/verifyUser.ts` — ID トークン検証・`uid` 取得（§15）
+- `src/lib/auth/withAuth.ts` — Route Handler ラッパー（認証失敗時 401）（§15）
+- `src/app/api/fatigue/current/route.ts` — GET（全筋肉の最新疲労値）
+- `src/app/api/fatigue/history/route.ts` — GET（特定筋肉の履歴）
+- `src/app/api/fatigue/reset/route.ts` — POST（疲労値リセット、`writeBatch`）
+- `src/app/api/workout/route.ts` — POST（ワークアウト保存）・GET（セッション一覧）
+- `src/app/api/exercises/route.ts` — GET（種目カタログ）
 - 全 Route Handler に `export const runtime = 'nodejs'; export const preferredRegion = 'hnd1';`
 
 **テスト対象**（同 PR 内）:
@@ -95,11 +99,11 @@
 **ブランチ**: `feat/step-4-state`
 
 **主な成果物**:
-- `src/stores/uiStore.ts` — Zustand（selectedMuscle・sliderOpen・sliderValue）
-- `src/hooks/useFatigueQuery.ts` — TanStack Query（`queryKeys.fatigue.*`）
-- `src/hooks/useFatigueWithDecay.ts` — 1分ごとに減衰再計算するフック
-- `src/hooks/useWorkoutQuery.ts` — ワークアウト一覧
-- `src/components/layout/QueryProvider.tsx` — `QueryClient` の設定（staleTime 5min）
+- `src/stores/uiStore.ts` — Zustand（selectedMuscle・sliderOpen・sliderValue）（§5）
+- `src/hooks/useFatigue.ts` — 現在疲労値の取得・保存・リセット（§6）
+- `src/hooks/useFatigueWithDecay.ts` — 1分ごとに減衰再計算するフック（§16）
+- `src/hooks/useWorkout.ts` — ワークアウト保存・セッション一覧（§6）
+- `src/hooks/useExercises.ts` — 種目カタログ取得（§6）
 
 **テスト対象**（同 PR 内）:
 - `useFatigueWithDecay` のユニットテスト（decay 計算が正しく更新されること）
