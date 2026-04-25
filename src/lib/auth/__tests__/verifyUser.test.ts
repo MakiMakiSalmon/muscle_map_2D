@@ -52,7 +52,7 @@ describe('withAuth', () => {
   beforeEach(() => { vi.clearAllMocks(); });
 
   it('認証なし → 401 を返す', async () => {
-    const handler = vi.fn();
+    const handler = vi.fn() as (req: NextRequest, ctx: { uid: string }) => Promise<NextResponse>;
     const wrapped = withAuth(handler);
     const req = new NextRequest('http://localhost/api/test');
 
@@ -65,7 +65,7 @@ describe('withAuth', () => {
 
   it('認証成功 → ハンドラを uid 付きで呼ぶ', async () => {
     mockVerifyIdToken.mockResolvedValueOnce({ uid: 'user_abc' } as never);
-    const handler = vi.fn().mockResolvedValueOnce(NextResponse.json({ ok: true }));
+    const handler = vi.fn().mockResolvedValueOnce(NextResponse.json({ ok: true })) as (req: NextRequest, ctx: { uid: string }) => Promise<NextResponse>;
     const wrapped = withAuth(handler);
     const req = new NextRequest('http://localhost/api/test', {
       headers: { authorization: 'Bearer valid_token' },
@@ -78,7 +78,7 @@ describe('withAuth', () => {
 
   it('ハンドラが例外を投げる → 500 を返す', async () => {
     mockVerifyIdToken.mockResolvedValueOnce({ uid: 'user_abc' } as never);
-    const handler = vi.fn().mockRejectedValueOnce(new Error('DB error'));
+    const handler = vi.fn().mockRejectedValueOnce(new Error('DB error')) as (req: NextRequest, ctx: { uid: string }) => Promise<NextResponse>;
     const wrapped = withAuth(handler);
     const req = new NextRequest('http://localhost/api/test', {
       headers: { authorization: 'Bearer valid_token' },

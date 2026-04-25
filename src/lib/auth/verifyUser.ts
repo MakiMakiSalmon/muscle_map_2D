@@ -24,9 +24,9 @@ export async function verifyUser(req: NextRequest): Promise<{ uid: string }> {
 }
 
 // 認証・エラーハンドリングを共通化する API ルートラッパー（§15）
-export function withAuth(
-  handler: (req: NextRequest, ctx: { uid: string }) => Promise<NextResponse>
-): (req: NextRequest) => Promise<NextResponse> {
+export function withAuth<T>(
+  handler: (req: NextRequest, ctx: { uid: string }) => Promise<T>
+): (req: NextRequest) => Promise<T | NextResponse> {
   return async (req: NextRequest) => {
     try {
       const { uid } = await verifyUser(req);
