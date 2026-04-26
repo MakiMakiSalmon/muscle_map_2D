@@ -38,12 +38,12 @@ export const GET = withAuth(async (req: NextRequest, { uid }) => {
     const data = doc.data();
     return {
       id: doc.id,
-      performedAt: (data.performedAt.toDate() as Date).toISOString(),
+      performedAt: data.performedAt.toDate().toISOString(),
       exercises: data.exercises as WorkoutExerciseInput[],
     };
   });
 
-  const nextCursor = hasMore ? (resultDocs[resultDocs.length - 1]?.id ?? null) : null;
+  const nextCursor = hasMore ? (resultDocs[resultDocs.length - 1].id ?? null) : null;
 
   return NextResponse.json({ sessions, nextCursor });
 });
