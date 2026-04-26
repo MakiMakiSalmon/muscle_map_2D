@@ -73,7 +73,6 @@ export function useResetFatigue() {
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.fatigue.current });
-      // リセットは全16筋肉に value=0 を追加するため、全筋肉の history も stale になる
       queryClient.invalidateQueries({ queryKey: ['fatigue', 'history'] });
     },
   });
