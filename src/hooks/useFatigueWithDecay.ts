@@ -19,6 +19,7 @@ export function useFatigueWithDecay(): CurrentFatigueMap | null {
   }, []);
 
   return useMemo(() => {
+    void tick; // 1分ごとの再計算をトリガーするシグナル
     if (!data) return null;
     const now = new Date();
     const result = {} as CurrentFatigueMap;
@@ -37,5 +38,5 @@ export function useFatigueWithDecay(): CurrentFatigueMap | null {
       };
     }
     return result;
-  }, [data, tick]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [data, tick]);
 }

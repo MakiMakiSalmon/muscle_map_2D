@@ -24,6 +24,8 @@ async function getToken(): Promise<string> {
   return token;
 }
 
+// GET /api/workout/history は Step 3 実装漏れのため現在サーバーに存在しない。
+// enabled: false で無効化し、Step 3 修正 PR（別途）でルートを追加してから有効化する。
 export function useWorkoutHistory(limit = 10, cursor?: string) {
   return useQuery({
     queryKey: [...queryKeys.workout.history, { limit, cursor }],
@@ -41,6 +43,7 @@ export function useWorkoutHistory(limit = 10, cursor?: string) {
       return res.json() as Promise<WorkoutHistoryResponse>;
     },
     staleTime: 5 * 60 * 1000,
+    enabled: false,
   });
 }
 
