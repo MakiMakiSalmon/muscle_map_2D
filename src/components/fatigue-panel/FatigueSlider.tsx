@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Button from '@/components/ui/Button';
+import { getFatigueColor } from '@/lib/fatigue/colorMap';
 import type { MuscleId } from '@/types/domain';
 
 interface FatigueSliderProps {
@@ -18,22 +19,11 @@ export default function FatigueSlider({
 }: FatigueSliderProps) {
   const [draft, setDraft] = useState(initialValue);
 
-  // Sync draft when the saved value externally changes (e.g. after successful save or muscle switch)
-  // Use key prop on parent to remount when muscleId changes instead of tracking separately
-
-  const getBarColor = (value: number): string => {
-    if (value === 0) return '#dddddd';
-    if (value < 30) return '#90ee90';
-    if (value < 60) return '#ffd700';
-    if (value < 80) return '#ff8c00';
-    return '#ff4500';
-  };
-
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between text-sm text-gray-600">
         <span>疲労度</span>
-        <span className="text-xl font-bold" style={{ color: getBarColor(draft) }}>
+        <span className="text-xl font-bold" style={{ color: getFatigueColor(draft) }}>
           {draft}%
         </span>
       </div>
@@ -46,7 +36,7 @@ export default function FatigueSlider({
         onChange={(e) => setDraft(Number(e.target.value))}
         className="w-full h-2 rounded-lg appearance-none cursor-pointer"
         style={{
-          accentColor: getBarColor(draft),
+          accentColor: getFatigueColor(draft),
         }}
         aria-label={`疲労度スライダー ${draft}%`}
       />

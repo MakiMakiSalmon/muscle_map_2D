@@ -2,22 +2,9 @@
 
 import { useFatigueWithDecay } from '@/hooks/useFatigueWithDecay';
 import { useUIStore } from '@/stores/uiStore';
-import { MUSCLE_GROUPS, expandMuscleGroup } from '@/types/domain';
+import { MUSCLE_GROUPS, MUSCLE_GROUP_LABELS, expandMuscleGroup } from '@/types/domain';
 import { getFatigueColor } from '@/lib/fatigue/colorMap';
 import type { MuscleGroup } from '@/types/domain';
-
-const GROUP_LABELS: Record<MuscleGroup, string> = {
-  head: '頭部',
-  chest: '胸部',
-  back: '背中',
-  abs: '腹部',
-  shoulders: '肩',
-  biceps: '二頭筋',
-  triceps: '三頭筋',
-  forearms: '前腕',
-  thighs: '太もも',
-  calves: 'ふくらはぎ',
-};
 
 export default function BottomBar() {
   const fatigueData = useFatigueWithDecay();
@@ -46,13 +33,13 @@ export default function BottomBar() {
               key={group}
               onClick={() => handleBadgeClick(group)}
               className="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-gray-100 hover:bg-gray-200 transition-colors"
-              title={GROUP_LABELS[group]}
+              title={MUSCLE_GROUP_LABELS[group]}
             >
               <span
                 className="inline-block w-3 h-3 rounded-full border border-gray-300 flex-shrink-0"
                 style={{ backgroundColor: color }}
               />
-              <span className="text-gray-700">{GROUP_LABELS[group]}</span>
+              <span className="text-gray-700">{MUSCLE_GROUP_LABELS[group]}</span>
               <span className="text-gray-500">{value}%</span>
             </button>
           );

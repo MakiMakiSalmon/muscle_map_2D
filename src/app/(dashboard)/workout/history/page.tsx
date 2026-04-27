@@ -6,20 +6,8 @@ import { useExercises } from '@/hooks/useExercises';
 import { formatJstDate, formatJstTime } from '@/lib/date/format';
 import { collapseToGroups } from '@/lib/workout/collapseToGroups';
 import { computeFatigueImpact, mergeImpacts } from '@/lib/workout/fatigueImpact';
+import { MUSCLE_GROUP_LABELS } from '@/types/domain';
 import type { MuscleGroup, WorkoutSession, Exercise } from '@/types/domain';
-
-const GROUP_LABELS: Record<MuscleGroup, string> = {
-  head: '頭部',
-  chest: '胸部',
-  back: '背中',
-  abs: '腹部',
-  shoulders: '肩',
-  biceps: '二頭筋',
-  triceps: '三頭筋',
-  forearms: '前腕',
-  thighs: '太もも',
-  calves: 'ふくらはぎ',
-};
 
 function SessionCard({
   session,
@@ -65,7 +53,7 @@ function SessionCard({
           {impactEntries.map(([group, delta], i) => (
             <span key={group}>
               {i > 0 && ', '}
-              {GROUP_LABELS[group]}+{delta}%
+              {MUSCLE_GROUP_LABELS[group]}+{delta}%
             </span>
           ))}
         </div>
