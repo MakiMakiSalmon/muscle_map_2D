@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, type ReactNode } from 'react';
+import { useEffect, type ReactNode } from 'react';
 
 interface ModalProps {
   isOpen: boolean;
@@ -10,8 +10,6 @@ interface ModalProps {
 }
 
 export default function Modal({ isOpen, onClose, title, children }: ModalProps) {
-  const dialogRef = useRef<HTMLDivElement>(null);
-
   // Close on Escape key
   useEffect(() => {
     if (!isOpen) return;
@@ -46,7 +44,6 @@ export default function Modal({ isOpen, onClose, title, children }: ModalProps) 
 
       {/* Panel */}
       <div
-        ref={dialogRef}
         className="relative z-10 w-full max-w-lg mx-4 bg-white rounded-xl shadow-xl"
       >
         {/* Header */}

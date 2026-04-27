@@ -1,10 +1,15 @@
 'use client';
 
-import { signOut } from 'firebase/auth';
+import { useState, useEffect } from 'react';
+import { signOut, onAuthStateChanged, type User } from 'firebase/auth';
 import { clientAuth } from '@/lib/firebase/client';
 
 export default function Header() {
-  const user = clientAuth.currentUser;
+  const [user, setUser] = useState<User | null>(null);
+
+  useEffect(() => {
+    return onAuthStateChanged(clientAuth, setUser);
+  }, []);
 
   const handleSignOut = async () => {
     await signOut(clientAuth);

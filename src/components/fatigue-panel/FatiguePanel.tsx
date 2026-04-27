@@ -4,12 +4,13 @@ import { useFatigueWithDecay } from '@/hooks/useFatigueWithDecay';
 import { useFatigueHistory } from '@/hooks/useFatigue';
 import { useUIStore } from '@/stores/uiStore';
 import { MUSCLE_LABELS } from '@/types/domain';
+import type { MuscleId } from '@/types/domain';
 import FatigueInputTab from './FatigueInputTab';
 import FatigueHistoryChart from './FatigueHistoryChart';
 import WorkoutTab from './WorkoutTab';
 
 interface FatiguePanelProps {
-  selectedMuscle: string | null;
+  selectedMuscle: MuscleId | null;
 }
 
 const TABS = [
@@ -18,15 +19,15 @@ const TABS = [
   { id: 'workout', label: 'トレーニング' },
 ] as const;
 
-function HistoryTabContent({ muscleId }: { muscleId: string }) {
-  const { data: history = [], isLoading } = useFatigueHistory(muscleId as never, 20);
+function HistoryTabContent({ muscleId }: { muscleId: MuscleId }) {
+  const { data: history = [], isLoading } = useFatigueHistory(muscleId, 20);
 
   if (isLoading) return <div className="text-sm text-gray-400">読み込み中...</div>;
 
   return (
     <div className="space-y-3">
       <div className="text-sm font-medium text-gray-600">
-        {MUSCLE_LABELS[muscleId as never]} の疲労履歴
+        {MUSCLE_LABELS[muscleId]} の疲労履歴
       </div>
       <FatigueHistoryChart history={history} />
     </div>
@@ -60,10 +61,10 @@ export default function FatiguePanel({ selectedMuscle }: FatiguePanelProps) {
       <div className="flex-1 overflow-y-auto p-4">
         {activePanelTab === 'input' && (
           <>
-            {selectedMuscle && fatigueData?.[selectedMuscle as never] ? (
+            {selectedMuscle && fatigueData?.[selectedMuscle] ? (
               <FatigueInputTab
-                muscleId={selectedMuscle as never}
-                entry={fatigueData[selectedMuscle as never]}
+                muscleId={selectedMuscle}
+                entry={fatigueData[selectedMuscle]}
               />
             ) : (
               <div className="text-sm text-gray-400 text-center mt-8">

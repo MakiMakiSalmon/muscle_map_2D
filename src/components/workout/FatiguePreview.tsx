@@ -2,20 +2,8 @@
 
 import { computeFatigueImpact, mergeImpacts } from '@/lib/workout/fatigueImpact';
 import { collapseToGroups } from '@/lib/workout/collapseToGroups';
+import { MUSCLE_GROUP_LABELS } from '@/types/domain';
 import type { Exercise, MuscleGroup, WorkoutExerciseInput } from '@/types/domain';
-
-const GROUP_LABELS: Record<MuscleGroup, string> = {
-  head: '頭部',
-  chest: '胸部',
-  back: '背中',
-  abs: '腹部',
-  shoulders: '肩',
-  biceps: '二頭筋',
-  triceps: '三頭筋',
-  forearms: '前腕',
-  thighs: '太もも',
-  calves: 'ふくらはぎ',
-};
 
 interface FatiguePreviewProps {
   items: { exercise: Exercise; input: WorkoutExerciseInput }[];
@@ -44,7 +32,7 @@ export default function FatiguePreview({ items }: FatiguePreviewProps) {
             key={group}
             className="px-2 py-1 bg-orange-50 text-orange-700 rounded text-sm font-medium"
           >
-            {GROUP_LABELS[group]}: +{delta}%
+            {MUSCLE_GROUP_LABELS[group]}: +{delta}%
           </span>
         ))}
       </div>

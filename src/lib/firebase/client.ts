@@ -12,9 +12,8 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-// typeof window guard: Firebase client SDK は SSR 時に初期化しない。
-// next build 時(Node.js)は window が未定義のため空オブジェクトを返し、
-// クライアントサイドでのみ実際の Firebase インスタンスを初期化する。
+// CSR専用・SSRでは絶対使わないこと。
+// next build 時(Node.js)は window が未定義のため空オブジェクトを返す。
 function getClientApp() {
   return getApps()[0] ?? initializeApp(firebaseConfig);
 }

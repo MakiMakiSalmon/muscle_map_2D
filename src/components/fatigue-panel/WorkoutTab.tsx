@@ -3,12 +3,16 @@
 import Link from 'next/link';
 import Button from '@/components/ui/Button';
 import { useWorkoutHistory } from '@/hooks/useWorkout';
+import { useExercises } from '@/hooks/useExercises';
 import { useUIStore } from '@/stores/uiStore';
 import { formatJstDate, formatJstTime } from '@/lib/date/format';
 
 export default function WorkoutTab() {
   const { data, isLoading } = useWorkoutHistory(5);
+  const { data: exercises = [] } = useExercises('');
   const openWorkoutModal = useUIStore((s) => s.openWorkoutModal);
+
+  const exerciseMap = new Map(exercises.map((e) => [e.id, e]));
 
   return (
     <div className="space-y-4">
@@ -36,7 +40,7 @@ export default function WorkoutTab() {
                 {formatJstDate(session.performedAt)} {formatJstTime(session.performedAt)}
               </div>
               <div className="text-gray-700 truncate">
-                {session.exercises.map((e) => e.exerciseId).join('、')}
+                {session.exercises.map((e) => exerciseMap.get(e.exerciseId)?.nameJa ?? e.exerciseId).join('、')}
               </div>
             </div>
           ))}
