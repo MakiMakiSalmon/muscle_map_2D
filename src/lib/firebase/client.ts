@@ -1,6 +1,6 @@
-import { getApps, initializeApp } from "firebase/app";
-import { getAuth, type Auth } from "firebase/auth";
-import { getFirestore, type Firestore } from "firebase/firestore";
+import { getApp, getApps, initializeApp } from "firebase/app";
+import { getAuth } from "firebase/auth";
+import { getFirestore } from "firebase/firestore";
 
 // NEXT_PUBLIC_ キーは公開鍵。アクセス制御は Firestore セキュリティルールで行う
 const firebaseConfig = {
@@ -12,18 +12,7 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-// CSR専用・SSRでは絶対使わないこと。
-// next build 時(Node.js)は window が未定義のため空オブジェクトを返す。
-function getClientApp() {
-  return getApps()[0] ?? initializeApp(firebaseConfig);
-}
+const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 
-export const clientAuth: Auth =
-  typeof window === 'undefined'
-    ? ({} as Auth)
-    : getAuth(getClientApp());
-
-export const clientDb: Firestore =
-  typeof window === 'undefined'
-    ? ({} as Firestore)
-    : getFirestore(getClientApp());
+export const clientAuth = getAuth(app);
+export const clientDb = getFirestore(app);
