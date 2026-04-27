@@ -36,6 +36,19 @@ export const MUSCLE_GROUPS = [
 
 export type MuscleGroup = typeof MUSCLE_GROUPS[number];
 
+export const MUSCLE_GROUP_LABELS: Record<MuscleGroup, string> = {
+  head:      '頭部',
+  chest:     '胸部',
+  back:      '背中',
+  abs:       '腹部',
+  shoulders: '肩',
+  biceps:    '二頭筋',
+  triceps:   '三頭筋',
+  forearms:  '前腕',
+  thighs:    '太もも',
+  calves:    'ふくらはぎ',
+};
+
 export function expandMuscleGroup(group: MuscleGroup): MuscleId[] {
   switch (group) {
     case 'head':      return ['head'];
