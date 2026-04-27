@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { NextRequest } from 'next/server';
+import { Timestamp } from 'firebase-admin/firestore';
 
 const { mockDocSet, mockVerifyIdToken } = vi.hoisted(() => ({
   mockDocSet: vi.fn().mockResolvedValue(undefined),
@@ -52,7 +53,7 @@ describe('POST /api/fatigue', () => {
     expect(body.snapshot.recordedAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
   });
 
-  it('Firestore に source=manual, workoutSessionId=null で書き込む', async () => {
+  it('Firestore に source=manual, workoutSessionId=null, Timestamp で書き込む', async () => {
     await POST(makeRequest({ muscleId: 'back', value: 50 }, 'valid_token'));
     expect(mockDocSet).toHaveBeenCalledOnce();
     const [data] = mockDocSet.mock.calls[0];
@@ -60,6 +61,17 @@ describe('POST /api/fatigue', () => {
     expect(data.value).toBe(50);
     expect(data.source).toBe('manual');
     expect(data.workoutSessionId).toBeNull();
+    expect(data.recordedAt).toBeInstanceOf(Timestamp);
+  });
+
+  it('value = 0（最小値境界）→ 201', async () => {
+    const res = await POST(makeRequest({ muscleId: 'chest', value: 0 }, 'valid_token'));
+    expect(res.status).toBe(201);
+  });
+
+  it('value = 100（最大値境界）→ 201', async () => {
+    const res = await POST(makeRequest({ muscleId: 'chest', value: 100 }, 'valid_token'));
+    expect(res.status).toBe(201);
   });
 
   it('muscleId が不正 → 400', async () => {
