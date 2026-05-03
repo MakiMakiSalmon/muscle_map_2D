@@ -1,0 +1,25 @@
+name: Deploy Firestore
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy-firestore:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Deploy Firestore rules and indexes
+        run: npx firebase-tools deploy --only firestore:indexes,firestore:rules --project "$FIREBASE_PROJECT_ID" --token "$FIREBASE_TOKEN"
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+          FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
