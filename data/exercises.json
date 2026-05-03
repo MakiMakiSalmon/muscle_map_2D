@@ -1,0 +1,79 @@
+[
+  {
+    "id": "bench_press",
+    "nameJa": "ベンチプレス",
+    "nameEn": "bench_press",
+    "primaryMuscles": ["chest", "triceps"],
+    "secondaryMuscles": ["shoulders"]
+  },
+  {
+    "id": "squat",
+    "nameJa": "スクワット",
+    "nameEn": "squat",
+    "primaryMuscles": ["thighs"],
+    "secondaryMuscles": ["calves", "abs"]
+  },
+  {
+    "id": "deadlift",
+    "nameJa": "デッドリフト",
+    "nameEn": "deadlift",
+    "primaryMuscles": ["back", "thighs"],
+    "secondaryMuscles": ["forearms"]
+  },
+  {
+    "id": "overhead_press",
+    "nameJa": "オーバーヘッドプレス",
+    "nameEn": "overhead_press",
+    "primaryMuscles": ["shoulders"],
+    "secondaryMuscles": ["triceps"]
+  },
+  {
+    "id": "lat_pulldown",
+    "nameJa": "ラットプルダウン",
+    "nameEn": "lat_pulldown",
+    "primaryMuscles": ["back"],
+    "secondaryMuscles": ["biceps"]
+  },
+  {
+    "id": "bicep_curl",
+    "nameJa": "バイセップカール",
+    "nameEn": "bicep_curl",
+    "primaryMuscles": ["biceps"],
+    "secondaryMuscles": ["forearms"]
+  },
+  {
+    "id": "tricep_extension",
+    "nameJa": "トライセップエクステンション",
+    "nameEn": "tricep_extension",
+    "primaryMuscles": ["triceps"],
+    "secondaryMuscles": []
+  },
+  {
+    "id": "leg_press",
+    "nameJa": "レッグプレス",
+    "nameEn": "leg_press",
+    "primaryMuscles": ["thighs"],
+    "secondaryMuscles": ["calves"]
+  },
+  {
+    "id": "calf_raise",
+    "nameJa": "カーフレイズ",
+    "nameEn": "calf_raise",
+    "primaryMuscles": ["calves"],
+    "secondaryMuscles": []
+  },
+  {
+    "id": "crunch",
+    "nameJa": "クランチ",
+    "nameEn": "crunch",
+    "primaryMuscles": ["abs"],
+    "secondaryMuscles": []
+  },
+  {
+    "id": "neck_extension",
+    "nameJa": "ネックエクステンション",
+    "nameEn": "neck_extension",
+    "primaryMuscles": ["head"],
+    "secondaryMuscles": []
+  }
+]
