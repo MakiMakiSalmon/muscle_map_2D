@@ -1,41 +1,58 @@
+export const runtime = 'nodejs';
+export const preferredRegion = 'hnd1';
+
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
+import { Timestamp } from 'firebase-admin/firestore';
+import { withAuth } from '@/lib/auth/verifyUser';
+import { adminDb } from '@/lib/firebase/admin';
+import { MUSCLE_IDS } from '@/types/domain';
 
-// in-memory storage (本番環境ではデータベースを使用)
-let fatigueData: { [key: string]: number } = {
-  chest: 0,
-  back: 0,
-  shoulders: 0,
-  arms: 0,
-  forearms: 0,
-  abs: 0,
-  legs: 0,
-};
+const fatigueSchema = z.object({
+  muscleId: z.enum(MUSCLE_IDS),
+  value: z.number().int().min(0).max(100),
+});
 
-// GET: 疲労度データを取得
-export async function GET() {
-  return NextResponse.json(fatigueData);
-}
-
-// POST: 疲労度データを保存
-export async function POST(request: NextRequest) {
+export const POST = withAuth(async (req: NextRequest, { uid }) => {
+  let body: unknown;
   try {
-    const body = await request.json();
-    
-    // 特定の筋肉グループの疲労度を更新
-    if (body.muscle && typeof body.tire === 'number') {
-      fatigueData[body.muscle] = Math.min(100, Math.max(0, body.tire));
-    }
-    
-    return NextResponse.json({ success: true, data: fatigueData });
-  } catch (error) {
-    return NextResponse.json({ error: 'Invalid request' }, { status: 400 });
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON', code: 'INVALID_JSON' }, { status: 400 });
   }
-}
 
-// PUT: すべての疲労度データをリセット
-export async function PUT() {
-  Object.keys(fatigueData).forEach(key => {
-    fatigueData[key] = 0;
+  const parsed = fatigueSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: parsed.error.issues[0]?.message ?? 'Validation error', code: 'VALIDATION_ERROR' },
+      { status: 400 }
+    );
+  }
+
+  const { muscleId, value } = parsed.data;
+  const now = new Date();
+  const db = adminDb();
+  const ref = db.collection(`users/${uid}/fatigueSnapshots`).doc();
+
+  await ref.set({
+    muscleId,
+    value,
+    recordedAt: Timestamp.fromDate(now),
+    source: 'manual',
+    workoutSessionId: null,
   });
-  return NextResponse.json({ success: true, data: fatigueData });
-}
+
+  return NextResponse.json(
+    {
+      snapshot: {
+        id: ref.id,
+        muscleId,
+        value,
+        recordedAt: now.toISOString(),
+        source: 'manual',
+        workoutSessionId: null,
+      },
+    },
+    { status: 201 }
+  );
+});
