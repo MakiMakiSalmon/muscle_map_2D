@@ -28,6 +28,13 @@ describe('verifyUser', () => {
     await expect(verifyUser(req)).rejects.toThrow(UnauthorizedError);
   });
 
+  it('"Bearer " のみで空トークン → UnauthorizedError', async () => {
+    const req = new NextRequest('http://localhost/api/test', {
+      headers: { authorization: 'Bearer ' },
+    });
+    await expect(verifyUser(req)).rejects.toThrow('Missing Bearer token');
+  });
+
   it('トークン検証失敗 → UnauthorizedError', async () => {
     mockVerifyIdToken.mockRejectedValueOnce(new Error('Token expired'));
     const req = new NextRequest('http://localhost/api/test', {
@@ -74,6 +81,22 @@ describe('withAuth', () => {
     const res = await wrapped(req);
     expect(res.status).toBe(200);
     expect(handler).toHaveBeenCalledWith(req, { uid: 'user_abc' });
+  });
+
+  it('Firebase 認証エラー（auth/ プレフィックス）→ 401 を返す', async () => {
+    const firebaseErr = Object.assign(new Error('auth/id-token-expired'), { code: 'auth/id-token-expired' });
+    mockVerifyIdToken.mockRejectedValueOnce(firebaseErr);
+    const handler = vi.fn() as (req: NextRequest, ctx: { uid: string }) => Promise<NextResponse>;
+    const wrapped = withAuth(handler);
+    const req = new NextRequest('http://localhost/api/test', {
+      headers: { authorization: 'Bearer expired_token' },
+    });
+
+    const res = await wrapped(req);
+    expect(res.status).toBe(401);
+    const body = await res.json();
+    expect(body.code).toBe('UNAUTHORIZED');
+    expect(handler).not.toHaveBeenCalled();
   });
 
   it('ハンドラが例外を投げる → 500 を返す', async () => {

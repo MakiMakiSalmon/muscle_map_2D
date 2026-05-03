@@ -15,6 +15,9 @@ export async function verifyUser(req: NextRequest): Promise<{ uid: string }> {
     throw new UnauthorizedError('Missing Bearer token');
   }
   const idToken = authHeader.substring(7);
+  if (!idToken) {
+    throw new UnauthorizedError('Missing Bearer token');
+  }
   try {
     const decoded = await adminAuth().verifyIdToken(idToken);
     return { uid: decoded.uid };
@@ -35,6 +38,13 @@ export function withAuth<T>(
       if (err instanceof UnauthorizedError) {
         return NextResponse.json(
           { error: err.message, code: 'UNAUTHORIZED' },
+          { status: 401 }
+        );
+      }
+      if (err && typeof err === 'object' && 'code' in err &&
+          String(err.code).startsWith('auth/')) {
+        return NextResponse.json(
+          { error: 'Invalid token', code: 'UNAUTHORIZED' },
           { status: 401 }
         );
       }
