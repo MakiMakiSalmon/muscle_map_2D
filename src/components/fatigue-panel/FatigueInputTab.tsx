@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import FatigueSlider from './FatigueSlider';
 import FatigueHistoryChart from './FatigueHistoryChart';
 import { useSaveFatigue } from '@/hooks/useSaveFatigue';
@@ -15,6 +16,7 @@ interface FatigueInputTabProps {
 export default function FatigueInputTab({ muscleId, entry }: FatigueInputTabProps) {
   const { mutate: save, isPending } = useSaveFatigue();
   const { data: history = [] } = useFatigueHistory(muscleId, 7);
+  const [saveVersion, setSaveVersion] = useState(0);
 
   const formatRecovery = (hours: number): string => {
     if (hours <= 0) return '回復済み';
@@ -36,12 +38,16 @@ export default function FatigueInputTab({ muscleId, entry }: FatigueInputTabProp
       </div>
 
       <div className="border-t border-gray-100 pt-4">
-        {/* Key forces remount when muscle changes so draft resets */}
         <FatigueSlider
-          key={`${muscleId}-${entry.savedValue}`}
+          key={`${muscleId}-${saveVersion}`}
           muscleId={muscleId}
-          initialValue={entry.savedValue}
-          onSave={(value) => save({ muscleId, value })}
+          initialValue={entry.currentValue}
+          onSave={(value) =>
+            save(
+              { muscleId, value },
+              { onSuccess: () => setSaveVersion((version) => version + 1) },
+            )
+          }
           isSaving={isPending}
         />
       </div>
