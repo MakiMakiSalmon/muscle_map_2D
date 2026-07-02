@@ -7,18 +7,25 @@
     "secondaryMuscles": ["shoulders"]
   },
   {
-    "id": "squat",
-    "nameJa": "スクワット",
-    "nameEn": "squat",
-    "primaryMuscles": ["thighs"],
-    "secondaryMuscles": ["calves", "abs"]
+    "id": "incline_bench_press",
+    "nameJa": "インクラインベンチプレス",
+    "nameEn": "incline_bench_press",
+    "primaryMuscles": ["chest", "shoulders"],
+    "secondaryMuscles": ["triceps"]
   },
   {
-    "id": "deadlift",
-    "nameJa": "デッドリフト",
-    "nameEn": "deadlift",
-    "primaryMuscles": ["back", "thighs"],
-    "secondaryMuscles": ["forearms"]
+    "id": "push_up",
+    "nameJa": "プッシュアップ",
+    "nameEn": "push_up",
+    "primaryMuscles": ["chest", "triceps"],
+    "secondaryMuscles": ["shoulders", "abs"]
+  },
+  {
+    "id": "dumbbell_fly",
+    "nameJa": "ダンベルフライ",
+    "nameEn": "dumbbell_fly",
+    "primaryMuscles": ["chest"],
+    "secondaryMuscles": ["shoulders"]
   },
   {
     "id": "overhead_press",
@@ -28,6 +35,20 @@
     "secondaryMuscles": ["triceps"]
   },
   {
+    "id": "lateral_raise",
+    "nameJa": "サイドレイズ",
+    "nameEn": "lateral_raise",
+    "primaryMuscles": ["shoulders"],
+    "secondaryMuscles": []
+  },
+  {
+    "id": "rear_delt_raise",
+    "nameJa": "リアデルトレイズ",
+    "nameEn": "rear_delt_raise",
+    "primaryMuscles": ["shoulders"],
+    "secondaryMuscles": ["back"]
+  },
+  {
     "id": "lat_pulldown",
     "nameJa": "ラットプルダウン",
     "nameEn": "lat_pulldown",
@@ -35,18 +56,60 @@
     "secondaryMuscles": ["biceps"]
   },
   {
-    "id": "bicep_curl",
-    "nameJa": "バイセップカール",
-    "nameEn": "bicep_curl",
-    "primaryMuscles": ["biceps"],
+    "id": "seated_row",
+    "nameJa": "シーテッドロー",
+    "nameEn": "seated_row",
+    "primaryMuscles": ["back"],
+    "secondaryMuscles": ["biceps", "forearms"]
+  },
+  {
+    "id": "pull_up",
+    "nameJa": "懸垂",
+    "nameEn": "pull_up",
+    "primaryMuscles": ["back", "biceps"],
     "secondaryMuscles": ["forearms"]
   },
   {
-    "id": "tricep_extension",
-    "nameJa": "トライセップエクステンション",
-    "nameEn": "tricep_extension",
-    "primaryMuscles": ["triceps"],
-    "secondaryMuscles": []
+    "id": "bent_over_row",
+    "nameJa": "ベントオーバーロー",
+    "nameEn": "bent_over_row",
+    "primaryMuscles": ["back"],
+    "secondaryMuscles": ["biceps", "forearms"]
+  },
+  {
+    "id": "face_pull",
+    "nameJa": "フェイスプル",
+    "nameEn": "face_pull",
+    "primaryMuscles": ["shoulders", "back"],
+    "secondaryMuscles": ["biceps"]
+  },
+  {
+    "id": "deadlift",
+    "nameJa": "デッドリフト",
+    "nameEn": "deadlift",
+    "primaryMuscles": ["back", "thighs"],
+    "secondaryMuscles": ["forearms", "calves"]
+  },
+  {
+    "id": "romanian_deadlift",
+    "nameJa": "ルーマニアンデッドリフト",
+    "nameEn": "romanian_deadlift",
+    "primaryMuscles": ["thighs", "back"],
+    "secondaryMuscles": ["forearms"]
+  },
+  {
+    "id": "squat",
+    "nameJa": "スクワット",
+    "nameEn": "squat",
+    "primaryMuscles": ["thighs"],
+    "secondaryMuscles": ["calves", "abs"]
+  },
+  {
+    "id": "front_squat",
+    "nameJa": "フロントスクワット",
+    "nameEn": "front_squat",
+    "primaryMuscles": ["thighs", "abs"],
+    "secondaryMuscles": ["calves"]
   },
   {
     "id": "leg_press",
@@ -56,11 +119,88 @@
     "secondaryMuscles": ["calves"]
   },
   {
+    "id": "lunge",
+    "nameJa": "ランジ",
+    "nameEn": "lunge",
+    "primaryMuscles": ["thighs"],
+    "secondaryMuscles": ["calves", "abs"]
+  },
+  {
+    "id": "leg_extension",
+    "nameJa": "レッグエクステンション",
+    "nameEn": "leg_extension",
+    "primaryMuscles": ["thighs"],
+    "secondaryMuscles": []
+  },
+  {
+    "id": "leg_curl",
+    "nameJa": "レッグカール",
+    "nameEn": "leg_curl",
+    "primaryMuscles": ["thighs"],
+    "secondaryMuscles": ["calves"]
+  },
+  {
+    "id": "hip_thrust",
+    "nameJa": "ヒップスラスト",
+    "nameEn": "hip_thrust",
+    "primaryMuscles": ["thighs"],
+    "secondaryMuscles": ["abs"]
+  },
+  {
     "id": "calf_raise",
     "nameJa": "カーフレイズ",
     "nameEn": "calf_raise",
     "primaryMuscles": ["calves"],
     "secondaryMuscles": []
+  },
+  {
+    "id": "seated_calf_raise",
+    "nameJa": "シーテッドカーフレイズ",
+    "nameEn": "seated_calf_raise",
+    "primaryMuscles": ["calves"],
+    "secondaryMuscles": []
+  },
+  {
+    "id": "bicep_curl",
+    "nameJa": "バイセップカール",
+    "nameEn": "bicep_curl",
+    "primaryMuscles": ["biceps"],
+    "secondaryMuscles": ["forearms"]
+  },
+  {
+    "id": "hammer_curl",
+    "nameJa": "ハンマーカール",
+    "nameEn": "hammer_curl",
+    "primaryMuscles": ["biceps", "forearms"],
+    "secondaryMuscles": []
+  },
+  {
+    "id": "tricep_extension",
+    "nameJa": "トライセップエクステンション",
+    "nameEn": "tricep_extension",
+    "primaryMuscles": ["triceps"],
+    "secondaryMuscles": []
+  },
+  {
+    "id": "close_grip_bench_press",
+    "nameJa": "クローズグリップベンチプレス",
+    "nameEn": "close_grip_bench_press",
+    "primaryMuscles": ["triceps", "chest"],
+    "secondaryMuscles": ["shoulders"]
+  },
+  {
+    "id": "wrist_curl",
+    "nameJa": "リストカール",
+    "nameEn": "wrist_curl",
+    "primaryMuscles": ["forearms"],
+    "secondaryMuscles": []
+  },
+  {
+    "id": "farmer_carry",
+    "nameJa": "ファーマーズキャリー",
+    "nameEn": "farmer_carry",
+    "primaryMuscles": ["forearms", "abs"],
+    "secondaryMuscles": ["calves"]
   },
   {
     "id": "crunch",
@@ -70,9 +210,44 @@
     "secondaryMuscles": []
   },
   {
+    "id": "plank",
+    "nameJa": "プランク",
+    "nameEn": "plank",
+    "primaryMuscles": ["abs"],
+    "secondaryMuscles": ["shoulders"]
+  },
+  {
+    "id": "leg_raise",
+    "nameJa": "レッグレイズ",
+    "nameEn": "leg_raise",
+    "primaryMuscles": ["abs"],
+    "secondaryMuscles": ["thighs"]
+  },
+  {
+    "id": "russian_twist",
+    "nameJa": "ロシアンツイスト",
+    "nameEn": "russian_twist",
+    "primaryMuscles": ["abs"],
+    "secondaryMuscles": []
+  },
+  {
+    "id": "back_extension",
+    "nameJa": "バックエクステンション",
+    "nameEn": "back_extension",
+    "primaryMuscles": ["back"],
+    "secondaryMuscles": ["thighs"]
+  },
+  {
     "id": "neck_extension",
     "nameJa": "ネックエクステンション",
     "nameEn": "neck_extension",
+    "primaryMuscles": ["head"],
+    "secondaryMuscles": []
+  },
+  {
+    "id": "neck_flexion",
+    "nameJa": "ネックフレクション",
+    "nameEn": "neck_flexion",
     "primaryMuscles": ["head"],
     "secondaryMuscles": []
   }
