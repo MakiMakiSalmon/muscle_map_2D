@@ -8,27 +8,36 @@ export async function applyWorkoutToFatigue(
   impacts: Partial<Record<MuscleId, number>>,
   workoutSessionId: string,
   db: Firestore,
+  performedAt: Date,
   now = new Date(),
 ): Promise<FatigueSnapshotInput[]> {
   const entries = Object.entries(impacts) as [MuscleId, number][];
 
-  const snapshots = await Promise.all(
-    entries.map(async ([muscleId, delta]) => {
+  const snapshots: Array<FatigueSnapshotInput | null> = await Promise.all(
+    entries.map(async ([muscleId, delta]): Promise<FatigueSnapshotInput | null> => {
       const latest = await getLatestSnapshot(uid, muscleId, db);
-      const currentValue = latest
-        ? applyDecay(latest.value, latest.recordedAt, muscleId, now)
+
+      if (latest && latest.recordedAt.getTime() > performedAt.getTime()) {
+        return null;
+      }
+
+      const baseAtPerformed = latest
+        ? applyDecay(latest.value, latest.recordedAt, muscleId, performedAt)
         : 0;
-      const nextValue = Math.min(100, currentValue + delta);
+      const nextValue = Math.min(100, baseAtPerformed + delta);
+
+      if (nextValue === 0) return null;
 
       return {
         muscleId,
         value: nextValue,
-        recordedAt: now,
+        recordedAt: performedAt,
+        createdAt: now,
         source: 'workout' as const,
         workoutSessionId,
       };
     }),
   );
 
-  return snapshots;
+  return snapshots.filter((snapshot): snapshot is FatigueSnapshotInput => snapshot !== null);
 }

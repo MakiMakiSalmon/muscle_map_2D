@@ -21,6 +21,7 @@ function makeSnapshot(muscleId: string, value: number) {
     muscleId,
     value,
     recordedAt: new Date().toISOString(),
+    createdAt: new Date().toISOString(),
     source: 'manual',
     workoutSessionId: null,
   };

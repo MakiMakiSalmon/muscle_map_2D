@@ -30,6 +30,7 @@ export const handlers = [
           muscleId: "chest",
           value: 50,
           recordedAt: new Date().toISOString(),
+          createdAt: new Date().toISOString(),
           source: "manual",
           workoutSessionId: null,
         },

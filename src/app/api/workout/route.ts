@@ -85,15 +85,16 @@ export const POST = withAuth(async (req: NextRequest, { uid }) => {
   const now = new Date();
   const sessionRef = db.collection(`users/${uid}/workoutSessions`).doc();
   const sessionId = sessionRef.id;
+  const performedAtDate = new Date(performedAt);
 
-  // 現在の減衰済み値 + delta でスナップショットを生成（§4-3）
-  const fatigueSnapshots = await applyWorkoutToFatigue(uid, impacts, sessionId, db, now);
+  // performedAt 時点の絶対値としてスナップショットを生成（docs/v3/design.md D4-1）
+  const fatigueSnapshots = await applyWorkoutToFatigue(uid, impacts, sessionId, db, performedAtDate, now);
 
   // セッション + スナップショットを batch write で原子的に保存（§12-1）
   const batch = db.batch();
 
   batch.set(sessionRef, {
-    performedAt: Timestamp.fromDate(new Date(performedAt)),
+    performedAt: Timestamp.fromDate(performedAtDate),
     exercises: exercises.map((ex) => ({
       exerciseId: ex.exerciseId,
       sets: ex.sets,
@@ -108,6 +109,7 @@ export const POST = withAuth(async (req: NextRequest, { uid }) => {
       muscleId: snapshot.muscleId,
       value: snapshot.value,
       recordedAt: Timestamp.fromDate(snapshot.recordedAt),
+      createdAt: Timestamp.fromDate(snapshot.createdAt),
       source: snapshot.source,
       workoutSessionId: snapshot.workoutSessionId,
     });
@@ -119,7 +121,7 @@ export const POST = withAuth(async (req: NextRequest, { uid }) => {
     {
       session: {
         id: sessionId,
-        performedAt: new Date(performedAt).toISOString(),
+        performedAt: performedAtDate.toISOString(),
         exercises: exercises.map((ex) => ({
           exerciseId: ex.exerciseId,
           sets: ex.sets,

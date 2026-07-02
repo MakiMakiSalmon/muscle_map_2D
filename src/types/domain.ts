@@ -82,12 +82,16 @@ export interface FatigueSnapshot {
   muscleId: MuscleId;
   value: number;
   recordedAt: Date;
+  createdAt: Date;
   source: 'manual' | 'workout';
   workoutSessionId: string | null;
 }
 
 // applyWorkoutToFatigue の戻り値 / POST /api/workout の batch write に渡す shape
-export type FatigueSnapshotInput = Pick<FatigueSnapshot, 'muscleId' | 'value' | 'source' | 'workoutSessionId'> & { recordedAt: Date };
+export type FatigueSnapshotInput = Pick<FatigueSnapshot, 'muscleId' | 'value' | 'source' | 'workoutSessionId'> & {
+  recordedAt: Date;
+  createdAt: Date;
+};
 
 export interface CurrentFatigueEntry {
   savedValue: number;
