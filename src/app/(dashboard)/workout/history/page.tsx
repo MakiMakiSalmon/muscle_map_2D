@@ -16,13 +16,15 @@ function SessionCard({
   session: WorkoutSession;
   exerciseMap: Map<string, Exercise>;
 }) {
-  const impacts = mergeImpacts(
-    session.exercises.map((ex) => {
-      const exercise = exerciseMap.get(ex.exerciseId);
-      if (!exercise) return {};
-      return computeFatigueImpact(exercise, ex.sets, ex.reps);
-    }),
-  );
+  const impacts =
+    session.fatigueImpacts ??
+    mergeImpacts(
+      session.exercises.map((ex) => {
+        const exercise = exerciseMap.get(ex.exerciseId);
+        if (!exercise) return {};
+        return computeFatigueImpact(exercise, ex.sets, ex.reps);
+      }),
+    );
   const grouped = collapseToGroups(impacts);
   const impactEntries = Object.entries(grouped) as [MuscleGroup, number][];
 
