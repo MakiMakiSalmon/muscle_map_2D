@@ -8,6 +8,7 @@ import ExerciseRow from './ExerciseRow';
 import FatiguePreview from './FatiguePreview';
 import { useUIStore } from '@/stores/uiStore';
 import { useWorkout } from '@/hooks/useWorkout';
+import { toDatetimeLocalValue } from '@/lib/date/format';
 import type { Exercise, WorkoutExerciseInput } from '@/types/domain';
 
 interface RowItem {
@@ -20,11 +21,7 @@ export default function WorkoutInputModal() {
   const { mutate: saveWorkout, isPending } = useWorkout();
 
   const [rows, setRows] = useState<RowItem[]>([]);
-  const [performedAt, setPerformedAt] = useState(() => {
-    const now = new Date();
-    now.setSeconds(0, 0);
-    return now.toISOString().slice(0, 16);
-  });
+  const [performedAt, setPerformedAt] = useState(() => toDatetimeLocalValue(new Date()));
   const [error, setError] = useState('');
 
   const handleClose = () => {

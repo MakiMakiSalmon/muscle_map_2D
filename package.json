@@ -8,9 +8,9 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage",
+    "test": "TZ=Asia/Tokyo vitest run",
+    "test:watch": "TZ=Asia/Tokyo vitest",
+    "test:coverage": "TZ=Asia/Tokyo vitest run --coverage",
     "seed:exercises": "tsx scripts/seedExercises.ts"
   },
   "dependencies": {
