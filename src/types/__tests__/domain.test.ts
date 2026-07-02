@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { MUSCLE_IDS, expandMuscleGroup } from '@/types/domain';
+import {
+  MUSCLE_GROUP_LABELS,
+  MUSCLE_IDS,
+  MUSCLE_LABELS,
+  expandMuscleGroup,
+} from '@/types/domain';
 
 describe('MUSCLE_IDS', () => {
   it('16筋肉を含む', () => {
@@ -36,5 +41,12 @@ describe('expandMuscleGroup', () => {
     expect(expandMuscleGroup('forearms')).toEqual(['forearms_left', 'forearms_right']);
     expect(expandMuscleGroup('thighs')).toEqual(['thighs_left', 'thighs_right']);
     expect(expandMuscleGroup('calves')).toEqual(['calves_left', 'calves_right']);
+  });
+});
+
+describe('muscle labels', () => {
+  it('head は首として表示する', () => {
+    expect(MUSCLE_LABELS.head).toBe('首');
+    expect(MUSCLE_GROUP_LABELS.head).toBe('首');
   });
 });

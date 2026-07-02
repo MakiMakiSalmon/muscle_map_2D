@@ -11,7 +11,7 @@ export const MUSCLE_IDS = [
 export type MuscleId = typeof MUSCLE_IDS[number];
 
 export const MUSCLE_LABELS: Record<MuscleId, string> = {
-  head:             '頭部',
+  head:             '首',
   chest:            '胸部',
   back:             '背中',
   abs:              '腹部',
@@ -37,7 +37,7 @@ export const MUSCLE_GROUPS = [
 export type MuscleGroup = typeof MUSCLE_GROUPS[number];
 
 export const MUSCLE_GROUP_LABELS: Record<MuscleGroup, string> = {
-  head:      '頭部',
+  head:      '首',
   chest:     '胸部',
   back:      '背中',
   abs:       '腹部',

@@ -10,5 +10,6 @@ export const queryKeys = {
   },
   exercises: {
     list: (q: string) => ['exercises', q]                        as const,
+    all:              ['exercises', 'all']                       as const,
   },
 } as const;

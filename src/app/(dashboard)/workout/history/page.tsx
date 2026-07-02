@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useWorkoutHistory } from '@/hooks/useWorkout';
-import { useExercises } from '@/hooks/useExercises';
+import { useAllExercises } from '@/hooks/useExercises';
 import { formatJstDate, formatJstTime } from '@/lib/date/format';
 import { collapseToGroups } from '@/lib/workout/collapseToGroups';
 import { computeFatigueImpact, mergeImpacts } from '@/lib/workout/fatigueImpact';
@@ -66,7 +66,7 @@ function SessionCard({
 
 export default function HistoryPage() {
   const { data, isLoading } = useWorkoutHistory(30);
-  const { data: exercises = [] } = useExercises('');
+  const { data: exercises = [] } = useAllExercises();
 
   const exerciseMap = new Map(exercises.map((e) => [e.id, e]));
 
