@@ -85,7 +85,7 @@ scripts/              # seedExercises.ts
 - Route Handler から `initializeApp` を直接呼ぶ
 - localStorage/sessionStorage への疲労値保存（Firestore が単一ソース）
 - ワークアウトの編集 API 実装（v3.1 以降）。※削除 API は v3.0 スコープ（docs/v3/function.md V-B6）
-- 機能追加を勝手にスコープに入れる（`docs/function.md` に記載されたものが全て）
+- 機能追加を勝手にスコープに入れる（v3.0 は `docs/v3/function.md` に記載されたものが全て）
 
 ---
 

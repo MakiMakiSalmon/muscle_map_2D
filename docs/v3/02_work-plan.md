@@ -132,7 +132,7 @@
 - **目的**: 過去日時ワークアウトの正しい疲労反映。performedAt 由来の recordedAt 同値衝突に備えた `createdAt` タイブレークの導入。
 - **対象**: `src/lib/workout/applyWorkoutToFatigue.ts`（performedAt 引数。「①既存値を performedAt まで減衰 → ②デルタ加算＋100 クランプ → ③`recordedAt=performedAt`・`createdAt=now` で保存」。design.md D4-1）、`src/app/api/workout/route.ts`・`src/app/api/fatigue/route.ts`・`src/app/api/fatigue/reset/route.ts`（全書き込みで `createdAt` を設定）、`src/lib/fatigue/getLatestSnapshot.ts`（`orderBy(recordedAt desc).orderBy(createdAt desc)` の 2 段ソート）、`src/types/domain.ts`（`FatigueSnapshot`/`FatigueSnapshotInput` に `createdAt: Date`）、`src/types/api.ts`（`FatigueSnapshotDto` に `createdAt: string`。ブランチ4が先行済みなら追記）、`firestore.indexes.json`（`(muscleId ASC, recordedAt DESC, createdAt DESC)` へ拡張）、関連テスト。
 - **完了条件**: design.md D4-1 の検算どおり（既存80%＋40 を 24h 前・回復48h → 現在 50%）。performedAt 時点でクランプが効く。combined 0 なら書き込みなし。**同一 recordedAt の 2 件は createdAt で最新が一意に決まる（D2-0）**。
-- **テスト観点**（D0 の必須テストを含む）: performedAt 時点クランプの検算、now/+5 分、過去（回復時間内）、**順序逆転（履歴のみ追加・current 据え置き＝INV-2）**、**同一分 2 回記録の createdAt タイブレーク（D2-0）**。100 クランプの不変。
+- **テスト観点**（D0 の必須テストを含む）: performedAt 時点クランプの検算、now/+5 分、過去（回復時間内）、**順序逆転＝INV-2（その筋肉の snapshot を作らない・current 不変。session と impacts は保存）**、**同一分 2 回記録の createdAt タイブレーク（D2-0）**。100 クランプの不変。
 - **注**: 本ブランチ時点では current 反映は既存 getLatestSnapshot（`(recordedAt, createdAt)` 最大）に依存。ブランチ9で `buildCurrentMerge` へ移行。
 - **注（インデックス）**: `firestore.indexes.json` の変更はデプロイを伴うが、反映は Phase 6（main マージ時 deploy.yml）。ローカル/エミュレータ確認時は手動デプロイ。
 
@@ -152,7 +152,7 @@
 - **目的**: 現在値取得の read 16→1・レイテンシ短縮。
 - **対象**: `src/lib/fatigue/currentDoc.ts`（新規: 単一 doc の read/merge ヘルパー。`buildCurrentMerge` は `(recordedAt, createdAt)` タプル比較。current ミラーに `createdAt` を保存。design.md D2/D4-4）、`src/app/api/fatigue/current/route.ts`（1 doc read + 欠落時デフォルト）、`src/app/api/fatigue/route.ts`・`src/app/api/fatigue/reset/route.ts`・`src/app/api/workout/route.ts`（batch に current merge を追加）、`src/lib/workout/applyWorkoutToFatigue.ts`（現在値の read 元を current doc に変更）、関連テスト。
 - **完了条件**: current GET が 1 read。書き込み 3 経路すべてで snapshot と current が同一 batch。doc 欠落ユーザーは全 16 筋肉デフォルト値（移行処理なし、Q2）。**`buildCurrentMerge` が `(recordedAt, createdAt)` 最大ルール（design.md D0 INV-1・D2-0）で、順序逆転時に current を上書きしない（INV-2）こと。**
-- **テスト観点**（D0 の必須テストを含む）: 3 書き込み経路の batch 内容検証（原子性）。doc 欠落時のデフォルト補完。既存レスポンス形状の不変。**INV-1: `(recordedAt, createdAt)` 最大のみ current 採用（同一 recordedAt は createdAt で決定）。INV-2: 順序逆転入力で履歴のみ追加・current 不変。**
+- **テスト観点**（D0 の必須テストを含む）: 3 書き込み経路の batch 内容検証（原子性）。doc 欠落時のデフォルト補完。既存レスポンス形状の不変。**INV-1: `(recordedAt, createdAt)` 最大のみ current 採用（同一 recordedAt は createdAt で決定）。INV-2: 順序逆転入力ではその筋肉の snapshot を作らず current 不変。**
 
 #### 10. `feat/firestore-rules-v3`（C2）
 - **目的**: クライアント直アクセスの遮断。
