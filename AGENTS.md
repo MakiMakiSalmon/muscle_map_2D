@@ -12,11 +12,16 @@
 
 ## 設計ドキュメント（実装時の単一ソース）
 
-- [docs/function.md](./docs/function.md) — 機能スコープ（確定済み）
-- [docs/design_basic.md](./docs/design_basic.md) — 基本設計（構成図・画面設計・データフロー）
-- [docs/design_detail.md](./docs/design_detail.md) — 詳細設計（型・API・DB・実装パターン）
+**v3.0（現行）の単一ソースは `docs/v3/` 配下:**
+- [docs/v3/function.md](./docs/v3/function.md) — v3.0 確定スコープ
+- [docs/v3/design.md](./docs/v3/design.md) — v3.0 詳細設計（v2.0 との差分 D1〜D8）
+- [docs/v3/02_work-plan.md](./docs/v3/02_work-plan.md) — ブランチ計画・統合順序
 
-**迷ったらこの3つを読む。AGENTS.md より設計書が優先。**
+**v2.0（凍結・歴史的記録）:**
+- [docs/function.md](./docs/function.md) / [docs/design_basic.md](./docs/design_basic.md) / [docs/design_detail.md](./docs/design_detail.md)
+  — v3.0 の design.md で上書きされていない箇所のみ有効。
+
+**迷ったら docs/v3/ を読む。AGENTS.md より設計書が優先。**
 
 ## テックスタック
 
@@ -79,8 +84,8 @@ scripts/              # seedExercises.ts
 - Edge Runtime の使用（Admin SDK が動かない）
 - Route Handler から `initializeApp` を直接呼ぶ
 - localStorage/sessionStorage への疲労値保存（Firestore が単一ソース）
-- ワークアウトの編集/削除 API 実装（v1.3 以降）
-- 機能追加を勝手にスコープに入れる（`docs/function.md` に記載されたものが全て）
+- ワークアウトの編集 API 実装（v3.1 以降）。※削除 API は v3.0 スコープ（docs/v3/function.md V-B6）
+- 機能追加を勝手にスコープに入れる（v3.0 は `docs/v3/function.md` に記載されたものが全て）
 
 ---
 
@@ -184,9 +189,10 @@ git branch --merged ver3.0 | grep -E '^\s+(feat|fix|chore|test|docs)/' | xargs g
 
 ### 設計書は凍結（Frozen Specification）
 
-**`docs/` 配下の設計書 3 点（`function.md` / `design_basic.md` / `design_detail.md`）は実装フェーズ中は原則として変更しない。**
+**`docs/` 直下の v2.0 設計書 3 点（`function.md` / `design_basic.md` / `design_detail.md`）は凍結。変更しない。**
+v3.0 の生きた仕様は `docs/v3/`（`function.md` / `design.md` / `02_work-plan.md`）で、実装中の仕様調整はこちらを更新する（living document。ただし docs 変更は実装コミットと分離）。
 
-- 実装時にこれらのファイルを勝手に編集しない（typo 修正・リンク修正すら実装 PR に混ぜない）
+- v2.0 設計書 3 点を実装時に勝手に編集しない（typo 修正・リンク修正すら実装 PR に混ぜない）
 - 設計書の内容と実装を合わせる方向は **設計書に実装を合わせる**。逆方向（実装に合わせて設計書を書き換える）は禁止
 - 設計書の変更が必要になった場合:
   1. 作業を一度止めてユーザーに相談する
@@ -196,13 +202,15 @@ git branch --merged ver3.0 | grep -E '^\s+(feat|fix|chore|test|docs)/' | xargs g
 
 ### 実装品質のルール
 
-- 設計書（3 点）を **実装の単一ソース**とする。AGENTS.md はあくまで運用ルール
-- テストなしの実装コミットを切らない（§10 のテスト対象は実装と同じ PR 内で書く）
+- v3.0 は `docs/v3/`（`function.md` / `design.md` / `02_work-plan.md`）を **実装の単一ソース**とする。AGENTS.md はあくまで運用ルール
+- テストなしの実装コミットを切らない（テスト対象は実装と同じ PR 内で書く）
 - `npm run lint && npm run test && npm run typecheck` が通らないコミットをプッシュしない
-- 設計書上「MVP スコープ外」と明記された機能（ワークアウト編集・削除等）を勝手に実装しない
-- 機能追加のアイデアが湧いても `docs/function.md` の範囲外なら **実装せずメモに留める**
+- スコープ外機能（例: ワークアウト**編集** API は v3.1 以降）を勝手に実装しない。※削除 API は v3.0 スコープ（docs/v3/function.md V-B6）
+- 機能追加のアイデアが湧いても `docs/v3/function.md` の範囲外なら **実装せずメモに留める**
 
 ### Step 着手前の確認ルール
+
+> **【v3.0 での読み替え】** 以下の「Step 0〜6」は v2.0 実装時の工程・歴史的記録。v3.0 の作業単位は [docs/v3/02_work-plan.md](./docs/v3/02_work-plan.md) §2 の feat/* ブランチ計画。着手前の確認（対象ファイル列挙 → スコープ照合 → 承認）という手順自体は v3.0 でも踏襲し、照合先を Step 表ではなくブランチ計画の対象ファイルとする。
 
 各 Step の実装を開始する前に、必ず次の順序で確認する:
 

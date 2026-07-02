@@ -2,7 +2,7 @@
 
 筋肉部位ごとの疲労値を記録・可視化する Web アプリ。トレーニング内容を記録すると、関連筋肉の疲労値が自動計算されます。時間経過に伴う自動回復を反映し、リアルタイムで体図の色が更新されます。
 
-**現在 v2.0 再設計中**（2026-04-23 開始）。完全なスキーマ設計・テスト基盤の上に再実装しています。
+**現在 v3.0 開発中**（2026-07-02 開始）。v2.0 再設計（完了・main 未リリース）を土台に、疲労モデルの正しさ・モバイル対応・UX を強化しています。v3.0 の仕様は [docs/v3/](./docs/v3/) を参照。
 
 ## 主な機能
 
@@ -38,14 +38,17 @@
 | ドキュメント | 対象 |
 |-------------|------|
 | [CLAUDE.md](./CLAUDE.md) | 運用ルール・Git フロー・実装ルール・不変ルール |
-| [docs/function.md](./docs/function.md) | 機能スコープ（確定版・MVP 範囲） |
-| [docs/design_basic.md](./docs/design_basic.md) | 基本設計（構成図・画面設計・データフロー） |
-| [docs/design_detail.md](./docs/design_detail.md) | 詳細設計（型定義・API仕様・実装パターン） |
+| **[docs/v3/function.md](./docs/v3/function.md)** | **v3.0 機能スコープ（現行の単一ソース）** |
+| **[docs/v3/design.md](./docs/v3/design.md)** | **v3.0 詳細設計（v2.0 との差分 D1〜D8・不変条件 D0）** |
+| **[docs/v3/02_work-plan.md](./docs/v3/02_work-plan.md)** | **v3.0 改修計画・feat/* ブランチ計画** |
+| [docs/function.md](./docs/function.md) | v2.0 機能スコープ（凍結・歴史的記録） |
+| [docs/design_basic.md](./docs/design_basic.md) | v2.0 基本設計（凍結） |
+| [docs/design_detail.md](./docs/design_detail.md) | v2.0 詳細設計（凍結） |
 
 ## クイックスタート
 
 ### 前提条件
-- Node.js 18+
+- Node.js 20 以上（CI は 22 で実行）
 - npm または yarn
 - Firebase プロジェクト（認証情報設定済み）
 
@@ -214,12 +217,14 @@ Firebase (Google Cloud)
 | メソッド | パス | 説明 |
 |---------|------|------|
 | GET | `/api/fatigue/current` | 現在の疲労値（16筋肉全て） |
-| GET | `/api/fatigue/history` | 疲労値履歴 |
-| POST | `/api/fatigue/reset` | 全筋肉をリセット |
+| POST | `/api/fatigue` | 1筋肉の疲労値を手動保存 |
+| GET | `/api/fatigue/history` | 疲労値履歴（`muscleId` 指定） |
+| PUT | `/api/fatigue/reset` | 全筋肉をリセット |
 | POST | `/api/workout` | トレーニング記録・疲労値加算 |
+| GET | `/api/workout/history` | トレーニングセッション一覧 |
 | GET | `/api/exercises` | 種目カタログ取得 |
 
-詳細は [docs/design_detail.md](./docs/design_detail.md) §15 を参照。
+詳細は [docs/design_detail.md](./docs/design_detail.md) §3 を参照。v3.0 の追加・変更（`DELETE /api/workout/[id]` 等）は [docs/v3/design.md](./docs/v3/design.md) を参照。
 
 ## テスト
 
@@ -313,7 +318,7 @@ main            ← 本番リリース
 
 ```bash
 # Node.js バージョン確認
-node -v  # 18+ 必須
+node -v  # 20 以上（CI は 22）
 
 # キャッシュクリア
 rm -rf .next node_modules
@@ -335,19 +340,10 @@ npm run dev
 npm run test -- --reporter=verbose
 ```
 
-## ステップ進捗
+## 進捗
 
-現在の実装進捗（詳細は [CLAUDE.md](./CLAUDE.md) の「実装フェーズの大まかな順序」を参照）：
-
-| Step | 内容 | 状態 |
-|------|------|------|
-| 0 | 足場（Next.js・Tailwind・Vitest・Firebase） | ✅ 完了 |
-| 1 | ドメイン型・定数・純粋関数 | ✅ 完了 |
-| 2 | Firestore スキーマ・Rules・Indexes | ✅ 完了 |
-| 3 | API Route（認証・各エンドポイント） | ✅ 完了 |
-| 4 | Zustand・TanStack Query・楽観的更新 | ✅ 完了 |
-| 5 | UI コンポーネント（体図・スライダー・モーダル） |  ✅ 完了 |
-| 6 | シードスクリプト・CI/CD・デプロイ |  ✅ 完了 |
+- **v2.0 再設計**: 全 Step（足場・ドメイン型・Firestore・API・状態管理・UI・CI/CD）完了。main 未リリース（ver3.0 に統合済み）。
+- **v3.0 開発中**: マイルストーン・feat/* ブランチ計画は [docs/v3/02_work-plan.md](./docs/v3/02_work-plan.md) を参照。
 
 ## 参考リンク
 
