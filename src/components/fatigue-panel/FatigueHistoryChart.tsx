@@ -4,7 +4,7 @@ import { formatJstDate } from '@/lib/date/format';
 import { getFatigueColor } from '@/lib/fatigue/colorMap';
 
 interface FatigueHistoryChartProps {
-  history: { value: number; recordedAt: Date | string }[];
+  history: { value: number; recordedAt: string }[];
 }
 
 export default function FatigueHistoryChart({ history }: FatigueHistoryChartProps) {
@@ -18,13 +18,10 @@ export default function FatigueHistoryChart({ history }: FatigueHistoryChartProp
 
   const recent = history.slice(0, 7).reverse();
 
-  const toDate = (v: Date | string): Date => v instanceof Date ? v : new Date(v);
-
   return (
     <div className="space-y-2">
       <div className="flex items-end gap-1 h-20">
         {recent.map((entry, i) => {
-          const recordedAt = toDate(entry.recordedAt);
           return (
             <div key={i} className="flex-1 flex flex-col items-center gap-1">
               <span className="text-xs text-gray-500">{entry.value}%</span>
@@ -35,7 +32,7 @@ export default function FatigueHistoryChart({ history }: FatigueHistoryChartProp
                   backgroundColor: getFatigueColor(entry.value),
                   minHeight: '2px',
                 }}
-                title={`${formatJstDate(recordedAt.toISOString())} ${entry.value}%`}
+                title={`${formatJstDate(entry.recordedAt)} ${entry.value}%`}
               />
             </div>
           );
@@ -43,11 +40,10 @@ export default function FatigueHistoryChart({ history }: FatigueHistoryChartProp
       </div>
       <div className="flex gap-1">
         {recent.map((entry, i) => {
-          const recordedAt = toDate(entry.recordedAt);
           return (
             <div key={i} className="flex-1 text-center">
               <span className="text-xs text-gray-400">
-                {formatJstDate(recordedAt.toISOString()).slice(5)}
+                {formatJstDate(entry.recordedAt).slice(5)}
               </span>
             </div>
           );

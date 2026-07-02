@@ -1,9 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
 import { clientAuth } from '@/lib/firebase/client';
 import { queryKeys } from '@/lib/queryKeys';
-import type { Exercise } from '@/types/domain';
+import type { ExerciseDto, ExercisesResponse } from '@/types/api';
 
-async function fetchExercises(q: string): Promise<Exercise[]> {
+async function fetchExercises(q: string): Promise<ExerciseDto[]> {
   const token = await clientAuth.currentUser?.getIdToken();
   if (!token) throw new Error('Not authenticated');
   const params = new URLSearchParams({ limit: '20' });
@@ -16,7 +16,7 @@ async function fetchExercises(q: string): Promise<Exercise[]> {
     throw new Error((err as { error?: string }).error ?? `HTTP ${res.status}`);
   }
   const json = await res.json();
-  return (json as { exercises: Exercise[] }).exercises;
+  return (json as ExercisesResponse).exercises;
 }
 
 export function useExercises(q = '') {
