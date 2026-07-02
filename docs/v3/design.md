@@ -395,14 +395,18 @@ interface ToastItem { id: number; type: 'error' | 'success'; message: string }
 
 ### D5-3. ワークアウト楽観的更新（B4・§16-2 の実施）
 
-- v2.0 設計 §16-2 のパターンを採用。予測は **D4-1 と同一の計算**でなければ「保存後に値が跳ねる」ため、キャッシュの `savedValue` + `recordedAt` から再現する:
+- v2.0 設計 §16-2 のパターンを採用。予測は **D4-1 と同一の計算**でなければ「保存後に値が跳ねる」ため、キャッシュの `savedValue` + `recordedAt` から再現する。**D4-1 と同じ順序逆転ガードを必ず入れ、サーバーが snapshot を作らない筋肉はクライアントも楽観更新しない**:
   ```
+  // 筋肉ごと（entry = キャッシュの CurrentFatigueEntry）
+  if (entry && new Date(entry.recordedAt) > performedAt) {
+    return;  // 順序逆転（INV-2）: この筋肉は楽観更新しない（サーバーも snapshot を作らない）
+  }
   baseAtPerformed = applyDecay(entry.savedValue, entry.recordedAt, muscleId, performedAt)
   combined        = min(100, baseAtPerformed + rawDelta)
   predictedNow    = applyDecay(combined, performedAt, muscleId, now)  // 表示用の currentValue
   ```
   （`CurrentFatigueEntry` は `savedValue` と `recordedAt` を保持しているのでクライアントで正確に再現できる）
-- サーバーと同一の純粋関数（`computeFatigueImpact`・`mergeImpacts`・`applyDecay`）を使い、`onSettled` の invalidate で必ず収束。順序逆転ケース（D4-1）はサーバーが当該筋肉の snapshot を作らず current を変えないため、`onSettled` 後に楽観的更新が巻き戻ることがある点は許容（まれ）
+- サーバーと同一の純粋関数（`computeFatigueImpact`・`mergeImpacts`・`applyDecay`）＋同一の順序逆転ガードを使うため、`onSettled` の invalidate で値が跳ねたり巻き戻ったりしない（クライアント予測とサーバー結果が一致）。
 
 ### D5-4. クエリキー追加
 
