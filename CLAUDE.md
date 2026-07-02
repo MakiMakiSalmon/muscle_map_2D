@@ -136,7 +136,7 @@ useFatigueWithDecay フックで体図の色をクライアント側再計算
 3. CI（lint + test + typecheck + build）パス確認
 4. **squash merge** で `ver3.0` に取り込む（履歴を線形に保つ）
 5. マージ後、feat ブランチは削除
-6. Step 実装 PR の場合: `docs/step-status.md`（gitignore 対象）の当該 Step の状態を「完了」に更新する
+6. v3.0 ブランチ PR の完了条件は `docs/v3/02_work-plan.md` §2 の各ブランチ記載に従う
 
 ### PR タイトル・本文テンプレート
 
@@ -167,21 +167,47 @@ git branch --merged ver3.0 | grep -E '^\s+(feat|fix|chore|test|docs)/' | xargs g
 
 ---
 
-## 実装フェーズの大まかな順序
+## v3.0 実装マイルストーンとブランチ計画
 
-段階ごとにブランチ・PR を切る。順序は依存関係を反映。
+v3.0 の作業単位は Step 0〜6 ではなく、[docs/v3/02_work-plan.md](./docs/v3/02_work-plan.md) §2 のブランチ計画とする。各ブランチは `ver3.0` から分岐し、`ver3.0` へ PR を作成する。
 
-| Step | 内容 | 関連設計書セクション |
-|------|------|-------------------|
-| 0 | 足場（Next.js 初期化・Tailwind・Vitest・Firebase 接続・リージョン設定） | §11, §19 |
-| 1 | ドメイン型・定数・純粋関数（テスト先行） | §1, §4-1, §4-2, §8 |
-| 2 | Firestore スキーマ・Rules・Indexes・Admin SDK singleton | §2, §19-2 |
-| 3 | API Route（`withAuth` 共通化、各エンドポイント） | §3, §15 |
-| 4 | Zustand ストア・TanStack Query フック・楽観的更新 | §5, §6, §16 |
-| 5 | UI コンポーネント（体図・スライダー・モーダル・履歴） | §7, §17 |
-| 6 | シードスクリプト・CI/CD・Vercel デプロイ | §11, §13 |
+| マイルストーン | 内容 | 対象ブランチ |
+|----------------|------|--------------|
+| M0 | 品質ゲート回復 | `chore/v3-ci-branches`, `fix/workout-datetime-jst` |
+| M1 | 仕様正式化 | `docs/v3-spec` |
+| M2 | 正しさ | `feat/api-dto-types`, `feat/error-feedback`, `feat/workout-decay-at-performed`, `feat/workout-impacts-persist`, `feat/exercises-catalog` |
+| M3 | 性能・防御 | `feat/fatigue-current-doc`, `feat/firestore-rules-v3` |
+| M4 | UX | `feat/slider-current-value`, `feat/mobile-layout`, `feat/history-chart-v2`, `feat/workout-optimistic` |
+| M5 | 拡張 | `feat/workout-rpe`, `feat/today-recommend`, `feat/workout-delete`, `test/e2e-smoke` |
+| M6 | 統合検証・一括リリース | `ver3.0 → main`、rules/indexes デプロイ、seed、本番スモーク |
 
-各 Step で §18 チェックリストの該当項目を消化していく。
+| 順 | ブランチ | 対応項目 | 主な依存 |
+|----|---------|----------|----------|
+| 1 | `chore/v3-ci-branches` | CI push 対象修正 | なし |
+| 2 | `fix/workout-datetime-jst` | 実施日時初期値の JST 修正 | なし |
+| 3 | `docs/v3-spec` | v3.0 仕様正式化 | なし |
+| 4 | `feat/api-dto-types` | API DTO 型分離 | 3 |
+| 5 | `feat/error-feedback` | Toast・取得失敗 UI | 3 |
+| 6 | `feat/workout-decay-at-performed` | performedAt 減衰・createdAt タイブレーク | 3 |
+| 7 | `feat/workout-impacts-persist` | fatigueImpacts 永続化 | 3 |
+| 8 | `feat/exercises-catalog` | カタログ拡充・全件取得・首ラベル | 3 |
+| 9 | `feat/fatigue-current-doc` | current 単一 doc 化 | 4, 6, 7 |
+| 10 | `feat/firestore-rules-v3` | users/** 直接アクセス遮断 | 9 |
+| 11 | `feat/slider-current-value` | スライダー初期値修正 | 3 |
+| 12 | `feat/mobile-layout` | モバイルレイアウト | 5, 11 |
+| 13 | `feat/history-chart-v2` | 時間軸チャート | 4 |
+| 14 | `feat/workout-optimistic` | ワークアウト楽観的更新 | 6, 7 |
+| 15 | `feat/workout-rpe` | RPE 強度反映 | 6, 7 |
+| 16 | `feat/today-recommend` | 今日のおすすめ | 11 |
+| 17 | `feat/workout-delete` | ワークアウト削除 | 9 |
+| 18 | `test/e2e-smoke` | Playwright E2E | 12 |
+
+### CI/CD 運用
+
+- CI の push 対象は `main` と `ver3.0`（`ver2.0` は凍結のため対象外）。全 PR でも CI を実行する。
+- push 前に `npm run lint && npm run test && npm run typecheck && npm run build` を通す。
+- Firestore rules/indexes のデプロイは `.github/workflows/deploy.yml` により `main` push 時のみ実行する。v3.0 開発中の rules/indexes 変更は `ver3.0 → main` の一括リリース時に反映する。
+- v3.0 開発中に rules/indexes の先行デプロイが必要になった場合は、ユーザーの明示指示を受けて `firebase deploy --only firestore:indexes,firestore:rules` を実行する。
 
 ---
 
@@ -204,49 +230,17 @@ v3.0 の生きた仕様は `docs/v3/`（`function.md` / `design.md` / `02_work-p
 
 - v3.0 は `docs/v3/`（`function.md` / `design.md` / `02_work-plan.md`）を **実装の単一ソース**とする。CLAUDE.md はあくまで運用ルール
 - テストなしの実装コミットを切らない（テスト対象は実装と同じ PR 内で書く）
-- `npm run lint && npm run test && npm run typecheck` が通らないコミットをプッシュしない
+- `npm run lint && npm run test && npm run typecheck && npm run build` が通らないコミットをプッシュしない
 - スコープ外機能（例: ワークアウト**編集** API は v3.1 以降）を勝手に実装しない。※削除 API は v3.0 スコープ（docs/v3/function.md V-B6）
 - 機能追加のアイデアが湧いても `docs/v3/function.md` の範囲外なら **実装せずメモに留める**
 
-### Step 着手前の確認ルール
+### v3.0 ブランチ着手前の確認ルール
 
-> **【v3.0 での読み替え】** 以下の「Step 0〜6」は v2.0 実装時の工程・歴史的記録。v3.0 の作業単位は [docs/v3/02_work-plan.md](./docs/v3/02_work-plan.md) §2 の feat/* ブランチ計画。着手前の確認（対象ファイル列挙 → スコープ照合 → 承認）という手順自体は v3.0 でも踏襲し、照合先を Step 表ではなくブランチ計画の対象ファイルとする。
-
-各 Step の実装を開始する前に、必ず次の順序で確認する:
+各 v3.0 ブランチの実装を開始する前に、必ず次の順序で確認する:
 
 1. **作成・変更予定ファイルを列挙する** — ゼロから書き出し、省略しない
-2. **各ファイルが当該 Step のスコープ内であることを確認する** — 下の「Step ごとの対象ファイル」表と照合する
-3. **スコープ外のファイルは絶対に作らない** — 「ついでに」は禁止。別 Step のファイルが必要と判断した場合は作業を止めてユーザーに相談する
+2. **各ファイルが当該ブランチのスコープ内であることを確認する** — [docs/v3/02_work-plan.md](./docs/v3/02_work-plan.md) §2 の対象ファイルと照合する
+3. **スコープ外のファイルは絶対に作らない** — 「ついでに」は禁止。別ブランチのファイルが必要と判断した場合は作業を止めてユーザーに相談する
 4. **ユーザーに列挙内容を提示し、承認を得てから実装を開始する**
 
-### Step ごとの対象ファイル（このStepで初めて作成するファイル）
-
-実装着手前にこの表と照合すること。既存 Step で作成済みのファイルは別 Step で再作成しない。
-
-現在の進捗は `docs/step-status.md`（gitignore 対象・ローカルのみ）を参照。
-ファイルが存在しない場合は下記フォーマットで作成し、完了済み Step を「完了」に更新する。
-
-```markdown
-# Step 進捗（ローカル管理）
-| Step | 状態 | 内容 |
-|------|------|------|
-| 0 | 完了 | 足場 |
-| 1 | 完了 | ドメイン型・定数・純粋関数 |
-| 2 | 完了 | Firestore スキーマ・Rules・Indexes |
-| 3 | 未着手 | API Route |
-| 4 | 未着手 | Zustand ストア・TanStack Query フック |
-| 5 | 未着手 | UI コンポーネント |
-| 6 | 未着手 | シードスクリプト・CI/CD・Vercel デプロイ |
-```
-
-| Step | 対象ファイル（初回作成） |
-|------|----------------------|
-| 0 | `next.config.mjs`, `tailwind.config.ts`, `postcss.config.mjs`, `tsconfig.json`, `vitest.config.ts`, `.eslintrc.json`, `vercel.json`, `.github/workflows/ci.yml`, `src/test/setup.ts`, `src/test/sanity.test.ts`, `src/test/mocks/handlers.ts`, `src/test/mocks/server.ts`, `src/app/layout.tsx`, `src/app/page.tsx`, `src/app/globals.css` |
-| 1 | `src/types/domain.ts`, `src/types/__tests__/domain.test.ts`, `src/lib/fatigue/decay.ts`, `src/lib/fatigue/colorMap.ts`, `src/lib/fatigue/getLatestSnapshot.ts`, `src/lib/fatigue/__tests__/decay.test.ts`, `src/lib/fatigue/__tests__/colorMap.test.ts`, `src/lib/workout/fatigueImpact.ts`, `src/lib/workout/applyWorkoutToFatigue.ts`, `src/lib/workout/__tests__/fatigueImpact.test.ts`, `src/lib/workout/__tests__/applyWorkoutToFatigue.test.ts` |
-| 2 | `firebase.json`, `firestore.rules`, `firestore.indexes.json`, `src/lib/firebase/admin.ts`, `src/lib/firebase/client.ts`, `.env.example` |
-| 3 | `src/lib/auth/verifyUser.ts`, `src/app/api/fatigue/current/route.ts`, `src/app/api/fatigue/history/route.ts`, `src/app/api/fatigue/reset/route.ts`, `src/app/api/workout/route.ts`, `src/app/api/exercises/route.ts` |
-| 4 | `src/stores/uiStore.ts`, `src/hooks/useFatigue.ts`, `src/hooks/useFatigueWithDecay.ts`, `src/hooks/useWorkout.ts`, `src/hooks/useExercises.ts` |
-| 5 | `src/components/layout/` 配下, `src/components/body-diagram/` 配下, `src/components/fatigue-panel/` 配下, `src/components/workout/` 配下, `src/components/ui/` 配下 |
-| 6 | `data/exercises.json`, `scripts/seedExercises.ts`, `.github/workflows/deploy.yml` |
-
-※ Step 2 のファイル群は Step 0 で先行作成・実装済み（実装完了）。Step 2 での再作成は不要。
+旧 Step 0〜6 の対象ファイル表は v2.0 実装時の歴史的記録であり、v3.0 のスコープ判定には使わない。v3.0 では `docs/v3/02_work-plan.md` §2 を唯一の照合先とする。

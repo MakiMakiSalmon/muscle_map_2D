@@ -48,7 +48,7 @@
 ## クイックスタート
 
 ### 前提条件
-- Node.js 20 以上（CI は 22 で実行）
+- Node.js 22（CI と同じバージョン）
 - npm または yarn
 - Firebase プロジェクト（認証情報設定済み）
 
@@ -224,7 +224,7 @@ Firebase (Google Cloud)
 | GET | `/api/workout/history` | トレーニングセッション一覧 |
 | GET | `/api/exercises` | 種目カタログ取得 |
 
-詳細は [docs/design_detail.md](./docs/design_detail.md) §3 を参照。v3.0 の追加・変更（`DELETE /api/workout/[id]` 等）は [docs/v3/design.md](./docs/v3/design.md) を参照。
+v3.0 では後続ブランチで `DELETE /api/workout/[id]`（最新記録のみ削除可）を追加予定。API 差分は [docs/v3/design.md](./docs/v3/design.md) D3 を参照。v3.0 で上書きされていない v2.0 仕様は [docs/design_detail.md](./docs/design_detail.md) §3 を参照。
 
 ## テスト
 
@@ -274,7 +274,7 @@ FIREBASE_ADMIN_SDK_KEY=<admin-sdk-json-key>
 | UI 状態 | **Zustand** |
 | テスト | **Vitest** + **React Testing Library** + **MSW** |
 | Linter/Formatter | **ESLint** + **Prettier** |
-| CI/CD | **GitHub Actions** (lint + test + build) |
+| CI/CD | **GitHub Actions** (lint + test + typecheck + build) |
 | デプロイ | **Vercel** (hnd1・東京) |
 
 ## 開発ワークフロー
@@ -287,6 +287,7 @@ main            ← 本番リリース
     ├─ feat/xxx
     ├─ fix/xxx
     ├─ chore/xxx
+    ├─ docs/xxx
     └─ test/xxx
 ```
 
@@ -318,7 +319,7 @@ main            ← 本番リリース
 
 ```bash
 # Node.js バージョン確認
-node -v  # 20 以上（CI は 22）
+node -v  # 22（CI と同じ）
 
 # キャッシュクリア
 rm -rf .next node_modules
@@ -342,8 +343,13 @@ npm run test -- --reporter=verbose
 
 ## 進捗
 
-- **v2.0 再設計**: 全 Step（足場・ドメイン型・Firestore・API・状態管理・UI・CI/CD）完了。main 未リリース（ver3.0 に統合済み）。
-- **v3.0 開発中**: マイルストーン・feat/* ブランチ計画は [docs/v3/02_work-plan.md](./docs/v3/02_work-plan.md) を参照。
+| 系列 | 状態 | 備考 |
+|------|------|------|
+| v1.1 / `main` | 本番稼働中 | 最後の本番リリース。v3.0 完成時に `ver3.0 → main` を PR 経由で反映 |
+| v2.0 | 実装完了・凍結 | main 未リリース。`ver3.0` の土台として統合済み |
+| v3.0 / `ver3.0` | 開発中 | マイルストーン・feat/* ブランチ計画は [docs/v3/02_work-plan.md](./docs/v3/02_work-plan.md) を参照 |
+
+`package.json` の version は v3.0 統合検証時（[docs/v3/02_work-plan.md](./docs/v3/02_work-plan.md) Phase 6）に `3.0.0` へ更新する。
 
 ## 参考リンク
 
