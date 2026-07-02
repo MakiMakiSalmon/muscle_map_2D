@@ -165,7 +165,7 @@ service cloud.firestore {
 **処理フロー差分:**
 
 1. 種目取得・生デルタ計算は従来どおり（ただし `computeFatigueImpact` に rpe を渡す — D4-2）
-2. **A1**: スナップショット生成時、デルタを `performedAt` 起点で減衰させてから現在値に加算（D4-1）。**減衰後デルタが 0 の筋肉はスナップショット・current 更新をスキップ**する（0 加算の無意味な書き込みを避ける）
+2. **A1**: スナップショット生成は D4-1 のモデル（既存値を performedAt まで減衰 → デルタ加算 → 100 クランプ → `recordedAt = performedAt` で保存）。current 更新は最大 recordedAt ルール（D4-4）に従う
 3. **C1**: 現在値の取得は `state/fatigueCurrent` の 1 read（16 クエリを廃止）
 4. **A3**: セッション doc に `fatigueImpacts`（**減衰前の生デルタ** = レスポンスと同一値）を保存
 5. batch: セッション + スナップショット群 + current merge を一括コミット
@@ -178,15 +178,21 @@ service cloud.firestore {
 
 ### DELETE `/api/workout/[id]`【新規（B6）】
 
+**設計上の制約（P1-b 対応）**: スナップショットは**絶対値**で、後続ワークアウトはその値を土台に計算されている（後続の手動保存は上書きなので影響しないが、区別せず保守的に扱う）。そのため、削除できるのは「影響筋肉すべてについて、そのセッションのスナップショットが最新である」場合に限定する。後続スナップショットの再計算（リプレイ）は複雑で MVP スコープ外とし、代わりに削除条件を制限する。想定用途は「直近に記録したワークアウトの取り消し」であり、この制限で実用上十分。
+
 - **404**: セッションが存在しない場合
-- **処理手順**:
-  1. セッション doc を取得（存在確認）
-  2. `fatigueSnapshots` を `where('workoutSessionId', '==', id)` で取得（単一フィールドの自動インデックスで可）。影響筋肉集合を得る。同一セッションは筋肉ごとに最大 1 スナップショットしか書かないため、影響筋肉数 = 取得件数
-  3. 影響筋肉ごとに「削除対象を除く直近スナップショット」を特定: `where('muscleId','==',X).orderBy('recordedAt','desc').limit(2)` を発行し、`workoutSessionId !== id` の先頭を採用。該当なしなら デフォルト（value 0, recordedAt = now, source 'manual', workoutSessionId null）
-  4. **単一 batch**: セッション delete + 該当スナップショット delete + `state/fatigueCurrent` の影響筋肉を手順 3 の値で merge 更新
-- **割り切り仕様**: 削除対象セッションより**後**に保存されたスナップショット（手動保存・別セッション）には触れない。その筋肉の最新が削除対象でない場合、current は変化しない（手順 3 の limit(2) 先頭がそのまま最新）
+- **409 Conflict（`code: 'HAS_NEWER_SNAPSHOT'`）**: 影響筋肉のいずれかに、削除対象セッションのスナップショットより新しい `recordedAt` のスナップショットが存在する場合
+- **処理手順**（削除可能な場合）:
+  1. セッション doc を取得（存在確認・なければ 404）
+  2. `fatigueSnapshots` を `where('workoutSessionId', '==', id)` で取得。影響筋肉集合を得る（同一セッションは筋肉ごとに最大 1 スナップショット）
+  3. 各影響筋肉で「削除対象を除く最新2件」を確認: `where('muscleId','==',X).orderBy('recordedAt','desc').limit(2)`。先頭が削除対象**でない**（= より新しい記録がある）筋肉が 1 つでもあれば **409 で中断**
+  4. 各影響筋肉の復元先を決定: 手順 3 で得た「削除対象の 1 つ前」のスナップショット。無ければデフォルト（value 0）
+  5. **単一 batch**: セッション delete + 当該スナップショット delete + `state/fatigueCurrent` の影響筋肉を手順 4 の値へ更新
 - **レスポンス 200**: `{ "deletedSessionId": string, "affectedMuscles": MuscleId[] }`
+- **409 時のユーザー導線（UI）**: 「この記録より新しい記録があるため削除できません。手動調整または全リセットをご利用ください」と案内（Toast + モーダル内メッセージ）
 - **副作用の注記**: 削除されたセッション ID を cursor に使っていたページネーションは無効になる（再取得でリカバリ、許容）
+
+> 補足: A1（遡及記録）と本削除仕様は、いずれも「絶対値スナップショット × 順序逆転」に由来する同じ制約を共有する。将来フル・リプレイ（後続スナップショットの再計算）を導入すれば両方の制限を外せるが、v3.0 では扱わない。
 
 ### GET `/api/exercises`【変更: 全件モード】
 
@@ -199,6 +205,8 @@ service cloud.firestore {
 ## D4. ビジネスロジックの差分（対 §4）
 
 ### D4-1. 過去日時ワークアウトの減衰適用（A1・§4-3 の差し替え）
+
+**モデル（正）**: ワークアウトは `performedAt` 時点で疲労を発生させる。したがって「①既存値を performedAt まで減衰 → ②デルタを加算して performedAt 時点で 100 クランプ → ③その値を performedAt に記録された値として保存」する。現在値・履歴は `recordedAt = performedAt` からの減衰として読み取り側で計算されるため、**保存時に now へ再減衰しない**（線形減衰では `recordedAt = now` で保存すると回復クロックが再スタートし、完全回復時刻を過大評価するため）。
 
 ```typescript
 // src/lib/workout/applyWorkoutToFatigue.ts（v3.0 最終形 = C1 適用後）
@@ -215,21 +223,27 @@ export async function applyWorkoutToFatigue(
 
   for (const [muscleId, delta] of Object.entries(impacts) as [MuscleId, number][]) {
     const entry = current?.muscles[muscleId];
-    const base = entry
-      ? applyDecay(entry.value, entry.recordedAt, muscleId, now)
+
+    // ① 既存値を performedAt 時点まで減衰させて base を得る（now までではない）。
+    //    entry.recordedAt > performedAt（後述の順序逆転）のときは applyDecay 内の
+    //    Math.min(savedValue, ...) ガードにより base = entry.value にクランプされる。
+    const baseAtPerformed = entry
+      ? applyDecay(entry.value, entry.recordedAt, muscleId, performedAt)
       : 0;
 
-    // A1: デルタ自体を performedAt → now で減衰。
-    // applyDecay は「値 delta を performedAt 時点で保存したとみなした現在値」を返す。
-    // performedAt が now より未来（+5分許容内）の場合は applyDecay 内の
-    // Math.min(savedValue, ...) ガードにより delta のまま（減衰 0）。
-    const effectiveDelta = applyDecay(delta, performedAt, muscleId, now);
-    if (effectiveDelta === 0) continue;   // 回復時間超の過去日時 → 書き込みスキップ
+    // ② performedAt 時点でデルタを加算し 100 でクランプ（← 修正点。従来はここを通していなかった）
+    const combined = Math.min(100, baseAtPerformed + delta);
+
+    // ③ combined を「performedAt に記録された絶対値」として保存。
+    //    GET current / 履歴は recordedAt=performedAt から減衰を計算するため、
+    //    now への再減衰は不要で、回復曲線もそのまま正しく延長される。
+    //    combined が 0（既存 0 かつ delta 0）なら書き込み不要。
+    if (combined === 0) continue;
 
     snapshots.push({
       muscleId,
-      value: Math.min(100, base + effectiveDelta),
-      recordedAt: now,                    // 履歴の並び順・監査性のため now を維持
+      value: combined,
+      recordedAt: performedAt,            // ← now ではなく performedAt（曲線を延長）
       source: 'workout',
       workoutSessionId,
     });
@@ -238,16 +252,26 @@ export async function applyWorkoutToFatigue(
 }
 ```
 
+**検算（レビュー指摘の例）**: 既存 80% / 回復 48h、ワークアウト +40 を 24h 前（performedAt）に記録。
+- ① baseAtPerformed = 80（既存値の recordedAt = performedAt なら減衰 0）
+- ② combined = min(100, 80 + 40) = **100**（クランプが効く）
+- 現在値（GET current）= applyDecay(100, performedAt, 48h, now=+24h) = 100 × (1 − 24/48) = **50%** ✓（従来式の 60% は誤り）
+
+**fatigueCurrent の更新（順序逆転の扱い）**: 書き込み側（`buildCurrentMerge`・D4-4）は筋肉ごとに **recordedAt が最大のスナップショットを current とする**。したがって:
+- 通常ケース（`performedAt >= 既存 current.recordedAt`、＝「昨晩のトレを翌朝記録」等）: 新スナップショットが最新となり current を更新。
+- 順序逆転（影響筋肉に `performedAt` より新しい記録が既にある）: 新スナップショットは **履歴（fatigueSnapshots）にのみ追加**し、current は既存の新しい値を維持する。この場合、遡及ワークアウトは current に反映されない（**既知の割り切り**。D3 のワークアウト削除と同じ「絶対値スナップショット × 順序逆転」制約に由来する）。
+
 **境界条件（確定）:**
 
 | performedAt | 挙動 |
 |-------------|------|
-| now（即時記録） | 減衰 0（従来どおり満額加算） |
-| now + 5分以内（zod 許容範囲） | 減衰 0（`applyDecay` のクランプで delta のまま） |
-| 過去（回復時間内） | `delta × (1 - 経過h / 回復h)` を四捨五入して加算 |
-| 過去（回復時間超） | effectiveDelta = 0 → **スナップショット書き込み自体をスキップ**（セッションと fatigueImpacts は保存される） |
+| now（即時記録） | baseAtPerformed = 現在値、combined を now に記録（従来どおり満額加算・クランプあり） |
+| now + 5分以内（zod 許容範囲） | performedAt ≈ now として同上（`applyDecay` のクランプで減衰 0） |
+| 過去（回復時間内・順序逆転なし） | 上記モデルどおり。current は performedAt から減衰して表示 |
+| 過去（回復時間超） | current 読み取り時に 0 まで減衰（履歴には残る）。current 更新は最大 recordedAt ルールに従う |
+| 順序逆転（新しい記録が既存） | 履歴のみ追加、current は据え置き（既知の割り切り） |
 
-**注**: ブランチ 6（A1）の時点では現在値の read 元は従来の `getLatestSnapshot`。ブランチ 9（C1）で `readFatigueCurrent` に差し替える。
+**注**: ブランチ 6（A1）の時点では現在値 read は従来の `getLatestSnapshot`（筋肉ごと最新 = recordedAt 最大）。ブランチ 9（C1）で `readFatigueCurrent` + `buildCurrentMerge`（最大 recordedAt ルール）に差し替える。
 
 ### D4-2. RPE 係数（A4・§4-2 の拡張）
 
@@ -293,7 +317,12 @@ export function getRecommendedGroups(map: CurrentFatigueMap): MuscleGroup[] {
 ```typescript
 // src/lib/fatigue/currentDoc.ts（新規）
 // - readFatigueCurrent(uid, db): doc を 1 read。欠落時は null（呼び出し側でデフォルト補完）
-// - buildCurrentMerge(snapshots): FatigueSnapshotInput[] → merge 用の { muscles: {...}, updatedAt } を構築
+// - buildCurrentMerge(existing, snapshots): 既存 current と新スナップショット群から
+//     merge 用の { muscles: {...}, updatedAt } を構築する。
+//     筋肉ごとに「recordedAt が最大のもの」を current とする（最大 recordedAt ルール）。
+//     → performedAt 遡及ワークアウト（D4-1）で既存 current の方が新しい場合、その筋肉は
+//       既存値を維持し、遡及分は履歴（fatigueSnapshots）にのみ残る。
+//     manual 保存・reset は recordedAt=now なので常に current を更新する。
 // - batch への組み込みは各 Route Handler 側で行う（batch.set(ref, merge, { merge: true })）
 ```
 
@@ -318,9 +347,14 @@ interface ToastItem { id: number; type: 'error' | 'success'; message: string }
 
 ### D5-3. ワークアウト楽観的更新（B4・§16-2 の実施）
 
-- v2.0 設計 §16-2 のパターンを採用。予測計算は **A1 と同じ減衰込み**:
-  `predicted = min(100, current + applyDecay(rawDelta, performedAt, muscleId, now))`
-- サーバーと同一の純粋関数（`computeFatigueImpact`・`mergeImpacts`・`applyDecay`）を使い、`onSettled` の invalidate で必ず収束
+- v2.0 設計 §16-2 のパターンを採用。予測は **D4-1 と同一の計算**でなければ「保存後に値が跳ねる」ため、キャッシュの `savedValue` + `recordedAt` から再現する:
+  ```
+  baseAtPerformed = applyDecay(entry.savedValue, entry.recordedAt, muscleId, performedAt)
+  combined        = min(100, baseAtPerformed + rawDelta)
+  predictedNow    = applyDecay(combined, performedAt, muscleId, now)  // 表示用の currentValue
+  ```
+  （`CurrentFatigueEntry` は `savedValue` と `recordedAt` を保持しているのでクライアントで正確に再現できる）
+- サーバーと同一の純粋関数（`computeFatigueImpact`・`mergeImpacts`・`applyDecay`）を使い、`onSettled` の invalidate で必ず収束。順序逆転ケース（D4-1）はサーバーが履歴のみ更新するため、`onSettled` 後に予測が取り消されることがある点は許容（まれ）
 
 ### D5-4. クエリキー追加
 
@@ -373,7 +407,7 @@ exercises: {
 |------|------|
 | RecommendBanner（B5） | ダッシュボード上部。回復済みグループをバッジ表示、タップで該当筋肉（ペア筋は左）を選択。0 件時は「今日は休養日 💤」表示 |
 | ExerciseRow（A4） | RPE 入力（1〜10 のセレクト、既定「未入力」）。プレビューは rpe 込みで再計算 |
-| SessionCard（B6） | 削除ボタン → 確認モーダル（共通 `Modal` 再利用）→ `useDeleteWorkout` |
+| SessionCard（B6） | 削除ボタン → 確認モーダル（共通 `Modal` 再利用）→ `useDeleteWorkout`。409（新しい記録あり）時は「削除できない」案内を表示 |
 | 履歴ページ（A3） | `fatigueImpacts` があれば保存値で表示、なければ従来のクライアント再計算（フォールバック） |
 | 日時初期値（P0-1） | `datetime-local` の初期値はローカル時刻で組み立てる純粋関数 `toDatetimeLocalValue(date)` に切り出し |
 | ラベル（A5） | `MUSCLE_LABELS` 経由のため UI コード変更不要（定数変更のみで「首」が反映される） |
@@ -386,12 +420,13 @@ exercises: {
 
 | 対象 | 種別 | 優先度 | 確認内容 |
 |------|------|--------|---------|
-| `applyWorkoutToFatigue`（A1） | Unit | 高 | performedAt = now / 過去 / +5分 / 回復時間超（スキップ）。100 クランプ不変 |
+| `applyWorkoutToFatigue`（A1） | Unit | 高 | performedAt 時点クランプの検算（80%+40→24h前→現在50%）・now/+5分・過去・順序逆転（履歴のみ）・combined 0 スキップ |
+| `buildCurrentMerge`（C1/A1） | Unit | 高 | 最大 recordedAt ルール（遡及分は current を上書きしない・manual/reset は常に上書き） |
 | `computeFatigueImpact`（A4） | Unit | 高 | rpe null = 従来値と一致・rpe 1/10 の境界・上限クランプ |
 | `recommend.ts`（B5） | Unit | 高 | 閾値境界（29/30）・左右非対称の max・0 件 |
 | `chartGeometry.ts`（B3） | Unit | 高 | 時間→座標変換・予測破線の終点・縮退（0/1 件） |
 | `currentDoc.ts` + 各 Route（C1） | Unit/API | 高 | 3 書き込み経路の batch 内容（snapshot + current 同時）・doc 欠落時のデフォルト補完 |
-| `DELETE /api/workout/[id]`（B6） | API | 高 | 404・スナップショット削除・current 復元・後続手動保存の非影響 |
+| `DELETE /api/workout/[id]`（B6） | API | 高 | 404・**409（より新しい記録あり）**・スナップショット削除・current が直前値へ復元・batch 原子性 |
 | `toDatetimeLocalValue`（P0-1） | Unit | 高 | TZ 固定（JST）での初期値 |
 | Toast / エラー UI（B2） | Component | 高 | MSW 500/401 → 通知表示・再試行・ロールバック共存 |
 | `FatigueSlider` 初期値（A2） | Component | 高 | currentValue 初期化・tick 中の draft 維持・保存後の再初期化 |

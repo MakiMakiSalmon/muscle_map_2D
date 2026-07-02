@@ -214,12 +214,14 @@ Firebase (Google Cloud)
 | メソッド | パス | 説明 |
 |---------|------|------|
 | GET | `/api/fatigue/current` | 現在の疲労値（16筋肉全て） |
-| GET | `/api/fatigue/history` | 疲労値履歴 |
-| POST | `/api/fatigue/reset` | 全筋肉をリセット |
+| POST | `/api/fatigue` | 1筋肉の疲労値を手動保存 |
+| GET | `/api/fatigue/history` | 疲労値履歴（`muscleId` 指定） |
+| PUT | `/api/fatigue/reset` | 全筋肉をリセット |
 | POST | `/api/workout` | トレーニング記録・疲労値加算 |
+| GET | `/api/workout/history` | トレーニングセッション一覧 |
 | GET | `/api/exercises` | 種目カタログ取得 |
 
-詳細は [docs/design_detail.md](./docs/design_detail.md) §15 を参照。
+詳細は [docs/design_detail.md](./docs/design_detail.md) §3 を参照。v3.0 の追加・変更（`DELETE /api/workout/[id]` 等）は [docs/v3/design.md](./docs/v3/design.md) を参照。
 
 ## テスト
 

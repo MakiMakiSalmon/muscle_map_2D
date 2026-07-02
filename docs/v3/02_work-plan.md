@@ -53,12 +53,13 @@
 中間リリースは行わない。Vercel の本番デプロイ対象は main（Q9）のため、ver3.0 への feat マージは本番に影響しない。動作確認は Vercel のプレビューデプロイ + ローカルで行う。
 
 1. 全 feat/* 統合後、ver3.0 上で全体整合性確認（design.md D8 の手動チェックリスト + 全自動テスト + E2E）
-2. Firestore rules / indexes の本番デプロイ（C1 の rules 差分・C2 のルール強化を含む）— main マージ後の deploy.yml 自動実行に任せるか、直前に手動 `firebase deploy --only firestore:indexes,firestore:rules` で先行反映するかは、旧ルールでも新アプリが動作する（API は Admin SDK 経由でルールの影響を受けない）ため**どちらでも安全**。手順の単純さから deploy.yml 任せを推奨
+2. **`package.json` の version を `3.0.0` に更新するコミットを ver3.0 に入れる**（→ 次の PR のマージコミットが 3.0.0 を含む状態になり、タグが正しいコミットを指す。P2 指摘対応）
 3. シード再投入（カタログ拡充分、upsert なので安全）: `npm run seed:exercises`
 4. Vercel 環境変数の確認 → プレビューデプロイで最終動作確認
-5. `ver3.0 → main` PR 作成（v1.1 → v3.0 の一括更新になる点を PR 本文に明記）
+5. `ver3.0 → main` PR 作成（version 3.0.0 を含む。v1.1 → v3.0 の一括更新になる点を PR 本文に明記）
 6. main マージ → deploy.yml（rules/indexes）自動実行 → Vercel 本番デプロイ確認 → 本番スモーク（ログイン・保存・記録）
-7. タグ `v3.0.0` 付与、`package.json` version を `3.0.0` に更新
+   - Firestore rules/indexes（C1 の rules 差分・C2 のルール強化）は deploy.yml による自動反映。旧ルールでも新アプリは動作する（API は Admin SDK 経由でルールをバイパス）ため先行デプロイ不要
+7. **main の 3.0.0 マージコミットにタグ `v3.0.0` を付与**（version bump 済みコミットを指す）
 - **注意（保存済みメモリより）**: PR のマージ等の共有リポジトリ操作は、ユーザーの明示的な指示があるまで実行しない
 
 ---
@@ -108,8 +109,11 @@
 
 #### 3. `docs/v3-spec`（D4）
 - **目的**: v3.0 仕様の正式化。以降の実装 PR はすべて docs/v3 を参照する。
-- **対象**: `docs/v3/`（本計画ドキュメント群 + function.md + design.md の取り込み）、`README.md`（API 表修正・進捗・バージョン）、`CLAUDE.md`・`AGENTS.md`（v3.0 運用: Step 表を本ブランチ表へ差し替え、CI/rules デプロイ運用）、v2.0 設計書 3 点への凍結注記追記。
-- **完了条件**: ユーザー承認・マージ。G1/G2/G4/G10/G12 の差分解消。
+- **状態（2026-07-02）**: 本ブランチは 2 コミットに分割して PR #18 で運用中（未マージ）。
+  - 第1コミット: `docs/v3/` の計画5点を追加
+  - 第2コミット（P1-c 対応）: 既存運用ルールと v3 仕様の矛盾を解消 — AGENTS.md / CLAUDE.md の「単一ソース」記述に docs/v3 を追加、ワークアウト削除 API を禁止扱いから v3.0 スコープへ変更、README の API 表修正、v2.0 設計書3点へ凍結注記
+- **対象**: `docs/v3/`、`README.md`（API 表修正・進捗・バージョン）、`CLAUDE.md`・`AGENTS.md`（v3.0 運用への反映）、v2.0 設計書 3 点への凍結注記追記（本文は変更しない）。
+- **完了条件**: マージ時点で AGENTS.md / CLAUDE.md が v3.0 仕様と矛盾しないこと（特に「削除 API 禁止」が残っていないこと）。G1/G2/G4/G10/G12 の差分解消。**このブランチはワークアウト削除実装（ブランチ17）より前にマージ必須**。
 - **テスト観点**: リンク切れ確認のみ。
 
 #### 4. `feat/api-dto-types`（D2）
@@ -126,9 +130,10 @@
 
 #### 6. `feat/workout-decay-at-performed`（A1）
 - **目的**: 過去日時ワークアウトの正しい疲労反映。
-- **対象**: `src/lib/workout/applyWorkoutToFatigue.ts`（performedAt 引数追加・デルタ減衰・減衰後 0 のスキップ）、`src/app/api/workout/route.ts`、関連テスト、design.md D4 準拠。
-- **完了条件**: performedAt = 24h 前・回復 48h の筋肉でデルタが半減して加算。now・+5 分は減衰 0。減衰後デルタ 0 の筋肉はスナップショット書き込みなし。
-- **テスト観点**: 境界値（now / 過去 / 許容未来 / 回復時間超の過去 → 書き込みスキップ）。100 クランプ・現在値加算の不変。
+- **対象**: `src/lib/workout/applyWorkoutToFatigue.ts`（performedAt 引数追加。「①既存値を performedAt まで減衰 → ②デルタ加算＋100 クランプ → ③`recordedAt=performedAt` で保存」の順。design.md D4-1 準拠）、`src/app/api/workout/route.ts`、関連テスト。
+- **完了条件**: design.md D4-1 の検算どおり（既存80%＋40 を 24h 前・回復48h → 現在 50%）。performedAt 時点でクランプが効く。combined が 0 なら書き込みなし。
+- **テスト観点**: performedAt 時点クランプの検算、now/+5 分、過去（回復時間内）、順序逆転（履歴のみ追加・current 据え置き）。100 クランプの不変。
+- **注**: 本ブランチ時点では current 反映は既存 getLatestSnapshot（recordedAt 最大）に依存。ブランチ9で `buildCurrentMerge`（最大 recordedAt ルール）へ移行。
 
 #### 7. `feat/workout-impacts-persist`（A3）
 - **目的**: 履歴表示の不変性。A4（計算式変更）の前提。
@@ -192,9 +197,10 @@
 
 #### 17. `feat/workout-delete`（B6・削除のみ）
 - **目的**: 誤記録の救済。編集は実装しない（Q5、削除+再入力で代替）。
-- **対象**: `src/app/api/workout/[id]/route.ts`（新規 DELETE、design.md D3 の手順: セッション+由来スナップショット削除+current 再導出を単一 batch で）、`src/hooks/useDeleteWorkout.ts`（新規）、`src/app/(dashboard)/workout/history/page.tsx`（削除ボタン + 確認モーダル）、関連テスト。
-- **完了条件**: 削除後、履歴から消え、影響筋肉の現在値が直前スナップショット基準に戻る。存在しない id は 404。
-- **テスト観点**: 削除対象スナップショットの特定（workoutSessionId 一致）。後続の手動保存がある筋肉は影響を受けない（割り切り仕様の確認）。batch の原子性。
+- **前提**: ブランチ3（docs/v3-spec）マージ後に着手（AGENTS.md の「削除 API 禁止」が解除済みであること）。
+- **対象**: `src/app/api/workout/[id]/route.ts`（新規 DELETE、design.md D3 の手順: 削除可能条件チェック→セッション+由来スナップショット削除+current を直前値へ更新を単一 batch で）、`src/hooks/useDeleteWorkout.ts`（新規）、`src/app/(dashboard)/workout/history/page.tsx`（削除ボタン + 確認モーダル + 409 案内）、関連テスト。
+- **完了条件**: 削除可能な場合、履歴から消え、影響筋肉の現在値が直前スナップショット基準に戻る。存在しない id は 404。**影響筋肉に新しい記録がある場合は 409 で拒否**し、UI が案内を表示。
+- **テスト観点**: 404・**409（より新しい記録あり）**・削除対象スナップショットの特定（workoutSessionId 一致）・current の直前値復元・batch の原子性。
 
 #### 18. `test/e2e-smoke`（D3）
 - **目的**: 主要フローの退行検知。
