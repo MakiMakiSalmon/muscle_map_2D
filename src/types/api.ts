@@ -10,6 +10,7 @@ export interface FatigueSnapshotDto {
   muscleId: MuscleId;
   value: number;
   recordedAt: string;
+  createdAt: string;
   source: 'manual' | 'workout';
   workoutSessionId: string | null;
 }
