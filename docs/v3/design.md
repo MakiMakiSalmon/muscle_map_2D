@@ -14,7 +14,7 @@
 
 | # | 不変条件 | 実装箇所 | 必須テスト |
 |---|---------|---------|-----------|
-| INV-1 | **current は「最大 recordedAt のスナップショット」のみを採用する。** ワークアウト・手動保存・リセットいずれの経路でも、既存 current の `recordedAt` より新しい場合にのみ current を更新する | `buildCurrentMerge`（D4-4）。GET current も recordedAt 最大＝最新で解決 | `buildCurrentMerge` の Unit: 新しい方が採用される／古い方は無視される |
+| INV-1 | **current は「最大 recordedAt のスナップショット」のみを採用する。同一 recordedAt は `createdAt`（書き込み時刻）で決定する**（D2-0 タイブレーク）。ワークアウト・手動保存・リセットいずれの経路でも、既存 current より `(recordedAt, createdAt)` が新しい場合にのみ current を更新する | `buildCurrentMerge`（D4-4）。GET current・`getLatestSnapshot` も `(recordedAt DESC, createdAt DESC)` で解決 | `buildCurrentMerge` の Unit: 新しい方が採用／古い方は無視／**同一 recordedAt は createdAt で決定** |
 | INV-2 | **順序逆転時に current を上書きしない。** performedAt が既存 current.recordedAt より前の遡及ワークアウトは、履歴（`fatigueSnapshots`）にのみ追加し、current は既存値を維持する（INV-1 の帰結） | `applyWorkoutToFatigue`（D4-1）＋ `buildCurrentMerge`（D4-4） | Unit: 順序逆転入力で「履歴に1件追加・current 不変」を検証 |
 | INV-3 | **ワークアウト削除は「影響筋肉すべてで最新のセッション」のときのみ許可し、それ以外は 409 を返す。** 削除しても後続スナップショットに影響を残さない | `DELETE /api/workout/[id]`（D3） | API: 最新→削除成功＋current 直前値復元／新しい記録あり→409 |
 
@@ -79,6 +79,7 @@ export interface FatigueSnapshotDto {
   muscleId: MuscleId;
   value: number;
   recordedAt: string;                 // ISO 8601 UTC（domain の Date と区別）
+  createdAt: string;                  // ISO 8601 UTC（D2-0 タイブレーク・並び安定用。フィールド追加はブランチ6）
   source: 'manual' | 'workout';
   workoutSessionId: string | null;
 }
@@ -94,9 +95,24 @@ export interface WorkoutHistoryResponse {
 
 `useFatigue.ts` の `fetchFatigueHistory` 戻り型を `FatigueSnapshotDto[]` に修正し、`FatigueHistoryChart` の `Date | string` 両対応（防御コード）を string 前提に整理する。
 
+ドメイン型 `FatigueSnapshot`（`src/types/domain.ts`）にも `createdAt: Date` を追加する（`getLatestSnapshot` が `(recordedAt, createdAt)` タプルで最新を決めるため）。`FatigueSnapshotInput` にも `createdAt: Date` を含める。
+
 ---
 
 ## D2. Firestore スキーマ・Rules の差分（対 §2）
+
+### D2-0. `createdAt` タイブレークキー（P1-a 対応・INV-1/2/3 の前提）
+
+A1 でワークアウトのスナップショットは `recordedAt = performedAt`（`datetime-local` 由来で**分精度**）になるため、同一筋肉を同じ分に複数回記録すると `recordedAt` が同値になり得る。この状態だと「最大 recordedAt」だけでは最新が一意に定まらず、`buildCurrentMerge`・`getLatestSnapshot`・削除判定の `orderBy('recordedAt','desc')` がどちらを採るか不定になる。
+
+**対策**: `fatigueSnapshots` に **`createdAt: Timestamp`（サーバ書き込み時刻＝ハンドラの `now`。ミリ秒精度）を必須フィールドとして追加**し、**すべての「最新」解決を `(recordedAt DESC, createdAt DESC)` の 2 段ソートで行う**。`createdAt` は書き込み順を表すため、同一 `recordedAt`（同じ実施分）内では「後に記録したものが新しい」という直感どおりに決まる。
+
+- 対象フィールド追加: `fatigueSnapshots.createdAt`（manual / workout / reset すべての書き込みで設定）
+- 対象クエリ（すべて 2 段ソート）: `getLatestSnapshot`（D4-1）、`GET /api/fatigue/history` の並び、`DELETE` の直近2件取得（D3）
+- current ミラー（D2-1）にも `createdAt` を保持し、`buildCurrentMerge`（D4-4）は `(recordedAt, createdAt)` タプルで比較する
+- **複合インデックス変更**（`firestore.indexes.json`）:
+  `fatigueSnapshots: (muscleId ASC, recordedAt DESC, createdAt DESC)` に拡張する（既存の `(muscleId, recordedAt)` を置き換え）
+- 導入ブランチ: フィールドと index、`getLatestSnapshot` の 2 段ソートは**ブランチ6（A1）**で導入（performedAt により衝突が発生し得るため）。current ミラーへの `createdAt` 反映と `buildCurrentMerge` のタプル比較は**ブランチ9（C1）**。DELETE の 2 段ソートは**ブランチ17**。
 
 ### D2-1. 現在疲労値の単一ドキュメント（C1）
 
@@ -105,7 +121,8 @@ users/{uid}/state/fatigueCurrent          # 単一ドキュメント（コレク
 ├── muscles: map
 │     {muscleId}: {
 │        value: number            # 保存時点の疲労値（減衰は読み取り側で計算）
-│        recordedAt: Timestamp
+│        recordedAt: Timestamp    # イベント時刻（workout は performedAt）
+│        createdAt: Timestamp     # 書き込み時刻（recordedAt 同値時のタイブレーク＝D2-0）
 │        source: "manual" | "workout"
 │        workoutSessionId: string | null
 │     }
@@ -116,7 +133,7 @@ users/{uid}/state/fatigueCurrent          # 単一ドキュメント（コレク
 - **意味論**: `muscles[id]` は「その筋肉の最新スナップショット」のミラー。減衰計算は従来どおり読み取り側（クライアント/サーバー）で行う
 - **更新規則**: `fatigueSnapshots` への追記と**同一 batch** で `set(ref, { muscles: {...}, updatedAt }, { merge: true })`。原子性を担保し、二重管理の不整合を防ぐ
 - **移行**: 不要（Q2: 本番データなし）。doc 欠落・エントリ欠落時は該当筋肉をデフォルト値（value 0）として扱い、初回書き込みで自然に生成される
-- **インデックス**: 追加不要（doc 直接参照のみ）。`firestore.indexes.json` は v2.0 のまま
+- **インデックス**: current doc 自体は直接参照のみでインデックス不要。ただし `fatigueSnapshots` の複合インデックスは D2-0 のとおり `(muscleId ASC, recordedAt DESC, createdAt DESC)` へ拡張する
 
 ### D2-2. workoutSessions への追加フィールド（A3 / A4）
 
@@ -181,7 +198,7 @@ service cloud.firestore {
 **処理フロー差分:**
 
 1. 種目取得・生デルタ計算は従来どおり（ただし `computeFatigueImpact` に rpe を渡す — D4-2）
-2. **A1**: スナップショット生成は D4-1 のモデル（既存値を performedAt まで減衰 → デルタ加算 → 100 クランプ → `recordedAt = performedAt` で保存）。current 更新は最大 recordedAt ルール（D4-4）に従う
+2. **A1**: スナップショット生成は D4-1 のモデル（既存値を performedAt まで減衰 → デルタ加算 → 100 クランプ → `recordedAt = performedAt`・`createdAt = now` で保存）。current 更新は `(recordedAt, createdAt)` 最大ルール（D4-4・D2-0）に従う
 3. **C1**: 現在値の取得は `state/fatigueCurrent` の 1 read（16 クエリを廃止）
 4. **A3**: セッション doc に `fatigueImpacts`（**減衰前の生デルタ** = レスポンスと同一値）を保存
 5. batch: セッション + スナップショット群 + current merge を一括コミット
@@ -197,11 +214,11 @@ service cloud.firestore {
 **設計上の制約（P1-b 対応）**: スナップショットは**絶対値**で、後続ワークアウトはその値を土台に計算されている（後続の手動保存は上書きなので影響しないが、区別せず保守的に扱う）。そのため、削除できるのは「影響筋肉すべてについて、そのセッションのスナップショットが最新である」場合に限定する。後続スナップショットの再計算（リプレイ）は複雑で MVP スコープ外とし、代わりに削除条件を制限する。想定用途は「直近に記録したワークアウトの取り消し」であり、この制限で実用上十分。
 
 - **404**: セッションが存在しない場合
-- **409 Conflict（`code: 'HAS_NEWER_SNAPSHOT'`）**: 影響筋肉のいずれかに、削除対象セッションのスナップショットより新しい `recordedAt` のスナップショットが存在する場合
+- **409 Conflict（`code: 'HAS_NEWER_SNAPSHOT'`）**: 影響筋肉のいずれかに、削除対象セッションのスナップショットより新しい `(recordedAt, createdAt)` のスナップショットが存在する場合
 - **処理手順**（削除可能な場合）:
   1. セッション doc を取得（存在確認・なければ 404）
   2. `fatigueSnapshots` を `where('workoutSessionId', '==', id)` で取得。影響筋肉集合を得る（同一セッションは筋肉ごとに最大 1 スナップショット）
-  3. 各影響筋肉で「削除対象を除く最新2件」を確認: `where('muscleId','==',X).orderBy('recordedAt','desc').limit(2)`。先頭が削除対象**でない**（= より新しい記録がある）筋肉が 1 つでもあれば **409 で中断**
+  3. 各影響筋肉で「削除対象を除く最新2件」を確認: `where('muscleId','==',X).orderBy('recordedAt','desc').orderBy('createdAt','desc').limit(2)`（D2-0 の 2 段ソート・複合インデックス）。先頭が削除対象**でない**（= より新しい記録がある）筋肉が 1 つでもあれば **409 で中断**
   4. 各影響筋肉の復元先を決定: 手順 3 で得た「削除対象の 1 つ前」のスナップショット。無ければデフォルト（value 0）
   5. **単一 batch**: セッション delete + 当該スナップショット delete + `state/fatigueCurrent` の影響筋肉を手順 4 の値へ更新
 - **レスポンス 200**: `{ "deletedSessionId": string, "affectedMuscles": MuscleId[] }`
@@ -260,6 +277,7 @@ export async function applyWorkoutToFatigue(
       muscleId,
       value: combined,
       recordedAt: performedAt,            // ← now ではなく performedAt（曲線を延長）
+      createdAt: now,                     // 書き込み時刻。recordedAt 同値時のタイブレーク（D2-0）
       source: 'workout',
       workoutSessionId,
     });
@@ -268,13 +286,15 @@ export async function applyWorkoutToFatigue(
 }
 ```
 
+（`getLatestSnapshot` は `where('muscleId','==',X).orderBy('recordedAt','desc').orderBy('createdAt','desc').limit(1)` に変更。複合インデックスは D2-0 のとおり。）
+
 **検算（レビュー指摘の例）**: 既存 80% / 回復 48h、ワークアウト +40 を 24h 前（performedAt）に記録。
 - ① baseAtPerformed = 80（既存値の recordedAt = performedAt なら減衰 0）
 - ② combined = min(100, 80 + 40) = **100**（クランプが効く）
 - 現在値（GET current）= applyDecay(100, performedAt, 48h, now=+24h) = 100 × (1 − 24/48) = **50%** ✓（従来式の 60% は誤り）
 
-**fatigueCurrent の更新（順序逆転の扱い）**: 書き込み側（`buildCurrentMerge`・D4-4）は筋肉ごとに **recordedAt が最大のスナップショットを current とする**。したがって:
-- 通常ケース（`performedAt >= 既存 current.recordedAt`、＝「昨晩のトレを翌朝記録」等）: 新スナップショットが最新となり current を更新。
+**fatigueCurrent の更新（順序逆転の扱い）**: 書き込み側（`buildCurrentMerge`・D4-4）は筋肉ごとに **`(recordedAt, createdAt)` が最大のスナップショットを current とする**（D2-0 タイブレーク）。したがって:
+- 通常ケース（新スナップショットの `(recordedAt, createdAt)` が既存 current 以上、＝「昨晩のトレを翌朝記録」や同分の追記）: 新スナップショットが最新となり current を更新。
 - 順序逆転（影響筋肉に `performedAt` より新しい記録が既にある）: 新スナップショットは **履歴（fatigueSnapshots）にのみ追加**し、current は既存の新しい値を維持する。この場合、遡及ワークアウトは current に反映されない（**既知の割り切り**。D3 のワークアウト削除と同じ「絶対値スナップショット × 順序逆転」制約に由来する）。
 
 **境界条件（確定）:**
@@ -284,10 +304,11 @@ export async function applyWorkoutToFatigue(
 | now（即時記録） | baseAtPerformed = 現在値、combined を now に記録（従来どおり満額加算・クランプあり） |
 | now + 5分以内（zod 許容範囲） | performedAt ≈ now として同上（`applyDecay` のクランプで減衰 0） |
 | 過去（回復時間内・順序逆転なし） | 上記モデルどおり。current は performedAt から減衰して表示 |
-| 過去（回復時間超） | current 読み取り時に 0 まで減衰（履歴には残る）。current 更新は最大 recordedAt ルールに従う |
+| 過去（回復時間超） | current 読み取り時に 0 まで減衰（履歴には残る）。current 更新は `(recordedAt, createdAt)` 最大ルールに従う |
+| 同一分に同筋肉を複数記録（recordedAt 同値） | `createdAt`（書き込み順）で後勝ち＝2 回目が current。D2-0 タイブレーク |
 | 順序逆転（新しい記録が既存） | 履歴のみ追加、current は据え置き（既知の割り切り） |
 
-**注**: ブランチ 6（A1）の時点では現在値 read は従来の `getLatestSnapshot`（筋肉ごと最新 = recordedAt 最大）。ブランチ 9（C1）で `readFatigueCurrent` + `buildCurrentMerge`（最大 recordedAt ルール）に差し替える。
+**注**: ブランチ 6（A1）の時点では現在値 read は従来の `getLatestSnapshot`（筋肉ごと最新 = `(recordedAt, createdAt)` 最大。2 段ソート＋複合インデックスを本ブランチで導入）。ブランチ 9（C1）で `readFatigueCurrent` + `buildCurrentMerge`（`(recordedAt, createdAt)` 最大ルール）に差し替える。
 
 ### D4-2. RPE 係数（A4・§4-2 の拡張）
 
@@ -335,10 +356,13 @@ export function getRecommendedGroups(map: CurrentFatigueMap): MuscleGroup[] {
 // - readFatigueCurrent(uid, db): doc を 1 read。欠落時は null（呼び出し側でデフォルト補完）
 // - buildCurrentMerge(existing, snapshots): 既存 current と新スナップショット群から
 //     merge 用の { muscles: {...}, updatedAt } を構築する。
-//     筋肉ごとに「recordedAt が最大のもの」を current とする（最大 recordedAt ルール）。
+//     筋肉ごとに (recordedAt, createdAt) が最大のものを current とする（D2-0 タイブレーク）。
+//       比較: a が新しい ⇔ a.recordedAt > b.recordedAt
+//              || (a.recordedAt == b.recordedAt && a.createdAt > b.createdAt)
 //     → performedAt 遡及ワークアウト（D4-1）で既存 current の方が新しい場合、その筋肉は
 //       既存値を維持し、遡及分は履歴（fatigueSnapshots）にのみ残る。
 //     manual 保存・reset は recordedAt=now なので常に current を更新する。
+//     current ミラーにも createdAt を保存する（次回比較のため）。
 // - batch への組み込みは各 Route Handler 側で行う（batch.set(ref, merge, { merge: true })）
 ```
 
@@ -437,12 +461,13 @@ exercises: {
 | 対象 | 種別 | 優先度 | 確認内容 |
 |------|------|--------|---------|
 | `applyWorkoutToFatigue`（A1） | Unit | 高 | performedAt 時点クランプの検算（80%+40→24h前→現在50%）・now/+5分・過去・順序逆転（履歴のみ）・combined 0 スキップ |
-| `buildCurrentMerge`（C1/A1） | Unit | 高 | 最大 recordedAt ルール（遡及分は current を上書きしない・manual/reset は常に上書き） |
+| `buildCurrentMerge`（C1/A1） | Unit | 高 | `(recordedAt, createdAt)` 最大ルール（遡及分は current を上書きしない・manual/reset は常に上書き・**同一 recordedAt は createdAt で決定＝D2-0**） |
+| `getLatestSnapshot` タイブレーク（D2-0） | Unit | 高 | 同一 recordedAt の 2 件で createdAt の大きい方が最新になる |
 | `computeFatigueImpact`（A4） | Unit | 高 | rpe null = 従来値と一致・rpe 1/10 の境界・上限クランプ |
 | `recommend.ts`（B5） | Unit | 高 | 閾値境界（29/30）・左右非対称の max・0 件 |
 | `chartGeometry.ts`（B3） | Unit | 高 | 時間→座標変換・予測破線の終点・縮退（0/1 件） |
 | `currentDoc.ts` + 各 Route（C1） | Unit/API | 高 | 3 書き込み経路の batch 内容（snapshot + current 同時）・doc 欠落時のデフォルト補完 |
-| `DELETE /api/workout/[id]`（B6） | API | 高 | 404・**409（より新しい記録あり）**・スナップショット削除・current が直前値へ復元・batch 原子性 |
+| `DELETE /api/workout/[id]`（B6） | API | 高 | 404・**409（より新しい記録あり・同一 recordedAt で createdAt がより新しい場合も含む）**・スナップショット削除・current が直前値へ復元・batch 原子性 |
 | `toDatetimeLocalValue`（P0-1） | Unit | 高 | TZ 固定（JST）での初期値 |
 | Toast / エラー UI（B2） | Component | 高 | MSW 500/401 → 通知表示・再試行・ロールバック共存 |
 | `FatigueSlider` 初期値（A2） | Component | 高 | currentValue 初期化・tick 中の draft 維持・保存後の再初期化 |
