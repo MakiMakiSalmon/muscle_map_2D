@@ -9,7 +9,7 @@ function timestamp(date: Date) {
 function makeDoc(
   id: string,
   recordedAt: Date,
-  createdAt: Date,
+  createdAt: Date | undefined,
   value: number,
 ) {
   return {
@@ -18,7 +18,7 @@ function makeDoc(
       muscleId: 'chest',
       value,
       recordedAt: timestamp(recordedAt),
-      createdAt: timestamp(createdAt),
+      ...(createdAt ? { createdAt: timestamp(createdAt) } : {}),
       source: 'manual',
       workoutSessionId: null,
     }),
@@ -26,26 +26,51 @@ function makeDoc(
 }
 
 function createDb(docs: ReturnType<typeof makeDoc>[]) {
-  const orderBy = vi.fn().mockReturnThis();
-  const query = {
-    where: vi.fn().mockReturnThis(),
-    orderBy,
-    limit: vi.fn().mockReturnThis(),
-    get: vi.fn(async () => {
-      const sorted = [...docs].sort((a, b) => {
-        const aData = a.data();
-        const bData = b.data();
-        const recordedDiff = bData.recordedAt.toDate().getTime() - aData.recordedAt.toDate().getTime();
-        if (recordedDiff !== 0) return recordedDiff;
-        return bData.createdAt.toDate().getTime() - aData.createdAt.toDate().getTime();
-      });
-      return { empty: sorted.length === 0, docs: sorted.slice(0, 1) };
-    }),
-  };
+  const queries: Array<{
+    where: ReturnType<typeof vi.fn>;
+    orderBy: ReturnType<typeof vi.fn>;
+    limit: ReturnType<typeof vi.fn>;
+    get: ReturnType<typeof vi.fn>;
+    orderBys: string[];
+  }> = [];
+
+  function makeQuery() {
+    const orderBys: string[] = [];
+    const query = {
+      where: vi.fn().mockReturnThis(),
+      orderBy: vi.fn((field: string) => {
+        orderBys.push(field);
+        return query;
+      }),
+      limit: vi.fn().mockReturnThis(),
+      get: vi.fn(async () => {
+        const includesCreatedAtOrder = orderBys.includes('createdAt');
+        const eligible = includesCreatedAtOrder
+          ? docs.filter((doc) => doc.data().createdAt)
+          : docs;
+        const sorted = [...eligible].sort((a, b) => {
+          const aData = a.data();
+          const bData = b.data();
+          const recordedDiff = bData.recordedAt.toDate().getTime() - aData.recordedAt.toDate().getTime();
+          if (recordedDiff !== 0) return recordedDiff;
+          const aCreatedAt = aData.createdAt?.toDate() ?? aData.recordedAt.toDate();
+          const bCreatedAt = bData.createdAt?.toDate() ?? bData.recordedAt.toDate();
+          return bCreatedAt.getTime() - aCreatedAt.getTime();
+        });
+        return { empty: sorted.length === 0, docs: sorted.slice(0, 1) };
+      }),
+      orderBys,
+    };
+    queries.push(query);
+    return query;
+  }
+
   const db = {
-    collection: vi.fn(() => query),
+    collection: vi.fn(() => ({
+      where: vi.fn((...args: unknown[]) => makeQuery().where(...args)),
+    })),
   };
-  return { db, query, orderBy };
+  return { db, queries };
 }
 
 describe('getLatestSnapshot', () => {
@@ -53,17 +78,19 @@ describe('getLatestSnapshot', () => {
     const recordedAt = new Date('2026-04-24T12:00:00.000Z');
     const olderCreatedAt = new Date('2026-04-24T12:00:01.000Z');
     const newerCreatedAt = new Date('2026-04-24T12:00:02.000Z');
-    const { db, query, orderBy } = createDb([
+    const { db, queries } = createDb([
       makeDoc('older', recordedAt, olderCreatedAt, 40),
       makeDoc('newer', recordedAt, newerCreatedAt, 60),
     ]);
 
     const result = await getLatestSnapshot('uid-1', 'chest', db as never);
 
-    expect(query.where).toHaveBeenCalledWith('muscleId', '==', 'chest');
-    expect(orderBy).toHaveBeenNthCalledWith(1, 'recordedAt', 'desc');
-    expect(orderBy).toHaveBeenNthCalledWith(2, 'createdAt', 'desc');
-    expect(query.limit).toHaveBeenCalledWith(1);
+    expect(queries[0].where).toHaveBeenCalledWith('muscleId', '==', 'chest');
+    expect(queries[0].orderBy).toHaveBeenNthCalledWith(1, 'recordedAt', 'desc');
+    expect(queries[0].orderBy).toHaveBeenNthCalledWith(2, 'createdAt', 'desc');
+    expect(queries[0].limit).toHaveBeenCalledWith(1);
+    expect(queries[1].orderBy).toHaveBeenNthCalledWith(1, 'recordedAt', 'desc');
+    expect(queries[1].limit).toHaveBeenCalledWith(1);
     expect(result).toMatchObject<Partial<FatigueSnapshot>>({
       id: 'newer',
       muscleId: 'chest',
@@ -72,6 +99,24 @@ describe('getLatestSnapshot', () => {
       createdAt: newerCreatedAt,
       source: 'manual',
       workoutSessionId: null,
+    });
+  });
+
+  it('createdAt がない旧スナップショットも最新候補に含める', async () => {
+    const oldRecordedAt = new Date('2026-04-24T12:00:00.000Z');
+    const newRecordedAt = new Date('2026-04-24T13:00:00.000Z');
+    const { db } = createDb([
+      makeDoc('created', oldRecordedAt, new Date('2026-04-24T12:00:10.000Z'), 40),
+      makeDoc('legacy', newRecordedAt, undefined, 60),
+    ]);
+
+    const result = await getLatestSnapshot('uid-1', 'chest', db as never);
+
+    expect(result).toMatchObject<Partial<FatigueSnapshot>>({
+      id: 'legacy',
+      value: 60,
+      recordedAt: newRecordedAt,
+      createdAt: newRecordedAt,
     });
   });
 
