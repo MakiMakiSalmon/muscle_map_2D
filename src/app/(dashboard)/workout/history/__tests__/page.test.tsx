@@ -13,7 +13,7 @@ vi.mock('@/hooks/useWorkout', () => ({
 }));
 
 vi.mock('@/hooks/useExercises', () => ({
-  useExercises: () => mockUseExercises(),
+  useAllExercises: () => mockUseExercises(),
 }));
 
 const benchPress: Exercise = {
