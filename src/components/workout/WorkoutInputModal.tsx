@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { fromZonedTime } from 'date-fns-tz';
 import Modal from '@/components/ui/Modal';
 import Button from '@/components/ui/Button';
 import ExerciseSearch from './ExerciseSearch';
@@ -8,7 +9,7 @@ import ExerciseRow from './ExerciseRow';
 import FatiguePreview from './FatiguePreview';
 import { useUIStore } from '@/stores/uiStore';
 import { useWorkout } from '@/hooks/useWorkout';
-import { toDatetimeLocalValue } from '@/lib/date/format';
+import { TZ, toDatetimeLocalValue } from '@/lib/date/format';
 import type { Exercise, WorkoutExerciseInput } from '@/types/domain';
 
 interface RowItem {
@@ -57,7 +58,7 @@ export default function WorkoutInputModal() {
     setError('');
     saveWorkout(
       {
-        performedAt: new Date(performedAt).toISOString(),
+        performedAt: fromZonedTime(performedAt, TZ).toISOString(),
         exercises: rows.map((r) => r.input),
       },
       {
