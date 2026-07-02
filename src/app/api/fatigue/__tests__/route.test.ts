@@ -51,6 +51,7 @@ describe('POST /api/fatigue', () => {
     expect(body.snapshot.source).toBe('manual');
     expect(body.snapshot.workoutSessionId).toBeNull();
     expect(body.snapshot.recordedAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+    expect(body.snapshot.createdAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
   });
 
   it('Firestore に source=manual, workoutSessionId=null, Timestamp で書き込む', async () => {
@@ -62,6 +63,8 @@ describe('POST /api/fatigue', () => {
     expect(data.source).toBe('manual');
     expect(data.workoutSessionId).toBeNull();
     expect(data.recordedAt).toBeInstanceOf(Timestamp);
+    expect(data.createdAt).toBeInstanceOf(Timestamp);
+    expect(data.createdAt.toDate()).toEqual(data.recordedAt.toDate());
   });
 
   it('value = 0（最小値境界）→ 201', async () => {

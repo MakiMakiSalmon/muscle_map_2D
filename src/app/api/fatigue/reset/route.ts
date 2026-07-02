@@ -19,6 +19,7 @@ export const PUT = withAuth(async (_req, { uid }) => {
       muscleId,
       value: 0,
       recordedAt: Timestamp.fromDate(now),
+      createdAt: Timestamp.fromDate(now),
       source: 'manual',
       workoutSessionId: null,
     });

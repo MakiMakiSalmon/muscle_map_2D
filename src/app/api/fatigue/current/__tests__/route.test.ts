@@ -59,6 +59,7 @@ describe('GET /api/fatigue/current', () => {
           muscleId: 'chest' as const,
           value: 80,
           recordedAt: now,
+          createdAt: now,
           source: 'manual' as const,
           workoutSessionId: null,
         };

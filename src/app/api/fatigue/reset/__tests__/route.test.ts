@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { NextRequest } from 'next/server';
+import { Timestamp } from 'firebase-admin/firestore';
 
 const { mockBatchSet, mockBatchCommit, mockVerifyIdToken } = vi.hoisted(() => ({
   mockBatchSet: vi.fn(),
@@ -53,6 +54,8 @@ describe('PUT /api/fatigue/reset', () => {
       expect(data.value).toBe(0);
       expect(data.source).toBe('manual');
       expect(data.workoutSessionId).toBeNull();
+      expect(data.createdAt).toBeInstanceOf(Timestamp);
+      expect(data.createdAt.toDate()).toEqual(data.recordedAt.toDate());
     }
   });
 

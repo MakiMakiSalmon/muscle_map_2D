@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { NextRequest } from 'next/server';
+import { Timestamp } from 'firebase-admin/firestore';
 
 const { mockBatchSet, mockBatchCommit, mockCollection, mockVerifyIdToken } = vi.hoisted(() => ({
   mockBatchSet: vi.fn(),
@@ -75,6 +76,7 @@ describe('POST /api/workout', () => {
         muscleId: 'chest' as const,
         value: 60,
         recordedAt: new Date(),
+        createdAt: new Date(),
         source: 'workout' as const,
         workoutSessionId: 'auto_id',
       },
@@ -142,6 +144,52 @@ describe('POST /api/workout', () => {
     expect(body.fatigueImpacts).toBeDefined();
     // batch.set が（セッション1件 + スナップショット1件）呼ばれる
     expect(mockBatchSet).toHaveBeenCalledTimes(2);
+    expect(mockBatchCommit).toHaveBeenCalledOnce();
+  });
+
+  it('applyWorkoutToFatigue に performedAt と now を渡す', async () => {
+    await POST(makeRequest(VALID_BODY));
+
+    expect(mockApplyWorkout).toHaveBeenCalledOnce();
+    const [, , sessionId, , performedAt, now] = mockApplyWorkout.mock.calls[0];
+    expect(sessionId).toBe('auto_id');
+    expect(performedAt).toBeInstanceOf(Date);
+    expect((performedAt as Date).toISOString()).toBe(VALID_BODY.performedAt);
+    expect(now).toBeInstanceOf(Date);
+  });
+
+  it('スナップショット書き込みに createdAt を保存する', async () => {
+    const recordedAt = new Date('2026-04-24T12:00:00.000Z');
+    const createdAt = new Date('2026-04-24T12:00:01.000Z');
+    mockApplyWorkout.mockResolvedValueOnce([
+      {
+        muscleId: 'chest' as const,
+        value: 60,
+        recordedAt,
+        createdAt,
+        source: 'workout' as const,
+        workoutSessionId: 'auto_id',
+      },
+    ]);
+
+    await POST(makeRequest(VALID_BODY));
+
+    const snapshotWrite = mockBatchSet.mock.calls[1][1];
+    expect(snapshotWrite.recordedAt).toBeInstanceOf(Timestamp);
+    expect(snapshotWrite.createdAt).toBeInstanceOf(Timestamp);
+    expect(snapshotWrite.recordedAt.toDate()).toEqual(recordedAt);
+    expect(snapshotWrite.createdAt.toDate()).toEqual(createdAt);
+  });
+
+  it('順序逆転でスナップショットが 0 件でも session と impacts は保存する', async () => {
+    mockApplyWorkout.mockResolvedValueOnce([]);
+
+    const res = await POST(makeRequest(VALID_BODY));
+
+    expect(res.status).toBe(201);
+    const body = await res.json();
+    expect(body.fatigueImpacts.chest).toBe(40);
+    expect(mockBatchSet).toHaveBeenCalledTimes(1);
     expect(mockBatchCommit).toHaveBeenCalledOnce();
   });
 });

@@ -38,6 +38,7 @@ export const POST = withAuth(async (req: NextRequest, { uid }) => {
     muscleId,
     value,
     recordedAt: Timestamp.fromDate(now),
+    createdAt: Timestamp.fromDate(now),
     source: 'manual',
     workoutSessionId: null,
   });
@@ -49,6 +50,7 @@ export const POST = withAuth(async (req: NextRequest, { uid }) => {
         muscleId,
         value,
         recordedAt: now.toISOString(),
+        createdAt: now.toISOString(),
         source: 'manual',
         workoutSessionId: null,
       },
