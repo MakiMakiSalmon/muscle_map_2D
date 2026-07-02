@@ -4,6 +4,22 @@
 形式: **差分形式**。本書に記載のない節は v2.0 の [design_detail.md](../design_detail.md) がそのまま有効。節番号 D1〜D8 は本書の章、§n は v2.0 設計書の節を指す。
 実装順序は [02_work-plan.md](./02_work-plan.md) §2 のブランチ計画に従う。本書は living document とし、実装中の仕様調整は該当節を更新してから実装する。
 
+疲労値の記録は `recordedAt=performedAt`（保存時刻ではなくワークアウト実施時刻）で行う。減衰計算の起点が `recordedAt` であるため、performedAt で保存することで回復曲線が一貫する（`now` へ再減衰して保存すると以後の曲線がずれる）。これに伴う「順序逆転」への対処を D0 の不変条件として固定する。
+
+---
+
+## D0. v3.0 の不変条件（必ず仕様・テストで担保する）
+
+以下は実装・レビュー・テストで**必達**の不変条件。各実装ブランチの完了条件に含め、対応するテストを必須（省略不可）とする。
+
+| # | 不変条件 | 実装箇所 | 必須テスト |
+|---|---------|---------|-----------|
+| INV-1 | **current は「最大 recordedAt のスナップショット」のみを採用する。** ワークアウト・手動保存・リセットいずれの経路でも、既存 current の `recordedAt` より新しい場合にのみ current を更新する | `buildCurrentMerge`（D4-4）。GET current も recordedAt 最大＝最新で解決 | `buildCurrentMerge` の Unit: 新しい方が採用される／古い方は無視される |
+| INV-2 | **順序逆転時に current を上書きしない。** performedAt が既存 current.recordedAt より前の遡及ワークアウトは、履歴（`fatigueSnapshots`）にのみ追加し、current は既存値を維持する（INV-1 の帰結） | `applyWorkoutToFatigue`（D4-1）＋ `buildCurrentMerge`（D4-4） | Unit: 順序逆転入力で「履歴に1件追加・current 不変」を検証 |
+| INV-3 | **ワークアウト削除は「影響筋肉すべてで最新のセッション」のときのみ許可し、それ以外は 409 を返す。** 削除しても後続スナップショットに影響を残さない | `DELETE /api/workout/[id]`（D3） | API: 最新→削除成功＋current 直前値復元／新しい記録あり→409 |
+
+これらは「絶対値スナップショット × 順序逆転」という単一の制約に由来する。将来フル・リプレイを導入すれば緩和できるが、v3.0 では上記で固定する。
+
 ---
 
 ## D1. 型定義の差分（対 §1）
@@ -434,6 +450,8 @@ exercises: {
 | フォールバック表示（A3） | Component | 中 | fatigueImpacts あり/なしの分岐 |
 | Modal focus trap（B1） | Component | 中 | Tab 循環・フォーカス復帰 |
 | E2E スモーク（D3） | E2E | 中 | ログイン→保存→色変化→記録→履歴の 1 本道（chromium のみ） |
+
+**D0 不変条件のテストは省略不可**: 上表の `applyWorkoutToFatigue`（順序逆転＝INV-2）・`buildCurrentMerge`（最大 recordedAt＝INV-1）・`DELETE /api/workout/[id]`（最新限定＋409＝INV-3）の各ケースは D0 の必達条件であり、該当ブランチのマージ条件とする。
 
 **E2E（Playwright）方針**: `test/e2e-smoke` ブランチ内で `@playwright/test` を devDependency 追加（採用確定済み: Q6）。認証は Firebase Auth エミュレータ or テスト用カスタムトークンのどちらかを着手時に PoC で決定し、本節を更新してから本実装する。CI では PR 時にスモークのみ・リトライ 1 回・5 分以内を目標。
 

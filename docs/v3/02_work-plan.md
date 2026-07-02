@@ -132,7 +132,7 @@
 - **目的**: 過去日時ワークアウトの正しい疲労反映。
 - **対象**: `src/lib/workout/applyWorkoutToFatigue.ts`（performedAt 引数追加。「①既存値を performedAt まで減衰 → ②デルタ加算＋100 クランプ → ③`recordedAt=performedAt` で保存」の順。design.md D4-1 準拠）、`src/app/api/workout/route.ts`、関連テスト。
 - **完了条件**: design.md D4-1 の検算どおり（既存80%＋40 を 24h 前・回復48h → 現在 50%）。performedAt 時点でクランプが効く。combined が 0 なら書き込みなし。
-- **テスト観点**: performedAt 時点クランプの検算、now/+5 分、過去（回復時間内）、順序逆転（履歴のみ追加・current 据え置き）。100 クランプの不変。
+- **テスト観点**（D0 の必須テストを含む）: performedAt 時点クランプの検算、now/+5 分、過去（回復時間内）、**順序逆転（履歴のみ追加・current 据え置き＝INV-2）**。100 クランプの不変。
 - **注**: 本ブランチ時点では current 反映は既存 getLatestSnapshot（recordedAt 最大）に依存。ブランチ9で `buildCurrentMerge`（最大 recordedAt ルール）へ移行。
 
 #### 7. `feat/workout-impacts-persist`（A3）
@@ -150,8 +150,8 @@
 #### 9. `feat/fatigue-current-doc`（C1）
 - **目的**: 現在値取得の read 16→1・レイテンシ短縮。
 - **対象**: `src/lib/fatigue/currentDoc.ts`（新規: 単一 doc の read/merge ヘルパー、design.md D2）、`src/app/api/fatigue/current/route.ts`（1 doc read + 欠落時デフォルト）、`src/app/api/fatigue/route.ts`・`src/app/api/fatigue/reset/route.ts`・`src/app/api/workout/route.ts`（batch に current merge を追加）、`src/lib/workout/applyWorkoutToFatigue.ts`（現在値の read 元を current doc に変更）、関連テスト。
-- **完了条件**: current GET が 1 read。書き込み 3 経路すべてで snapshot と current が同一 batch。doc 欠落ユーザーは全 16 筋肉デフォルト値（移行処理なし、Q2）。
-- **テスト観点**: 3 書き込み経路の batch 内容検証（原子性）。doc 欠落時のデフォルト補完。既存レスポンス形状の不変。
+- **完了条件**: current GET が 1 read。書き込み 3 経路すべてで snapshot と current が同一 batch。doc 欠落ユーザーは全 16 筋肉デフォルト値（移行処理なし、Q2）。**`buildCurrentMerge` が最大 recordedAt ルール（design.md D0 INV-1）で、順序逆転時に current を上書きしない（INV-2）こと。**
+- **テスト観点**（D0 の必須テストを含む）: 3 書き込み経路の batch 内容検証（原子性）。doc 欠落時のデフォルト補完。既存レスポンス形状の不変。**INV-1: 新しい recordedAt のみ current 採用。INV-2: 順序逆転入力で履歴のみ追加・current 不変。**
 
 #### 10. `feat/firestore-rules-v3`（C2）
 - **目的**: クライアント直アクセスの遮断。
@@ -200,7 +200,7 @@
 - **前提**: ブランチ3（docs/v3-spec）マージ後に着手（AGENTS.md の「削除 API 禁止」が解除済みであること）。
 - **対象**: `src/app/api/workout/[id]/route.ts`（新規 DELETE、design.md D3 の手順: 削除可能条件チェック→セッション+由来スナップショット削除+current を直前値へ更新を単一 batch で）、`src/hooks/useDeleteWorkout.ts`（新規）、`src/app/(dashboard)/workout/history/page.tsx`（削除ボタン + 確認モーダル + 409 案内）、関連テスト。
 - **完了条件**: 削除可能な場合、履歴から消え、影響筋肉の現在値が直前スナップショット基準に戻る。存在しない id は 404。**影響筋肉に新しい記録がある場合は 409 で拒否**し、UI が案内を表示。
-- **テスト観点**: 404・**409（より新しい記録あり）**・削除対象スナップショットの特定（workoutSessionId 一致）・current の直前値復元・batch の原子性。
+- **テスト観点**（D0 の必須テストを含む）: 404・**409（より新しい記録あり＝INV-3）**・削除対象スナップショットの特定（workoutSessionId 一致）・current の直前値復元・batch の原子性。
 
 #### 18. `test/e2e-smoke`（D3）
 - **目的**: 主要フローの退行検知。
