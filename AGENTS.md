@@ -1,6 +1,6 @@
-# CLAUDE.md
+# AGENTS.md
 
-このファイルはこのリポジトリで Claude Code / Claude が作業する際の運用ルールです。
+このファイルはこのリポジトリで Codex / Codex が作業する際の運用ルールです。
 
 ---
 
@@ -16,7 +16,7 @@
 - [docs/design_basic.md](./docs/design_basic.md) — 基本設計（構成図・画面設計・データフロー）
 - [docs/design_detail.md](./docs/design_detail.md) — 詳細設計（型・API・DB・実装パターン）
 
-**迷ったらこの3つを読む。CLAUDE.md より設計書が優先。**
+**迷ったらこの3つを読む。AGENTS.md より設計書が優先。**
 
 ## テックスタック
 
@@ -180,7 +180,7 @@ git branch --merged ver3.0 | grep -E '^\s+(feat|fix|chore|test|docs)/' | xargs g
 
 ---
 
-## Claude が作業する際のルール
+## Codex が作業する際のルール
 
 ### 設計書は凍結（Frozen Specification）
 
@@ -196,7 +196,7 @@ git branch --merged ver3.0 | grep -E '^\s+(feat|fix|chore|test|docs)/' | xargs g
 
 ### 実装品質のルール
 
-- 設計書（3 点）を **実装の単一ソース**とする。CLAUDE.md はあくまで運用ルール
+- 設計書（3 点）を **実装の単一ソース**とする。AGENTS.md はあくまで運用ルール
 - テストなしの実装コミットを切らない（§10 のテスト対象は実装と同じ PR 内で書く）
 - `npm run lint && npm run test && npm run typecheck` が通らないコミットをプッシュしない
 - 設計書上「MVP スコープ外」と明記された機能（ワークアウト編集・削除等）を勝手に実装しない
