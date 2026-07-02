@@ -117,6 +117,7 @@ export interface WorkoutSession {
   id: string;
   performedAt: string;              // ISO 8601 UTC
   exercises: WorkoutExerciseInput[];
+  fatigueImpacts?: Partial<Record<MuscleId, number>>;
 }
 
 export interface WorkoutSaveResult {

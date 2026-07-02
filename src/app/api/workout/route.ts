@@ -100,6 +100,7 @@ export const POST = withAuth(async (req: NextRequest, { uid }) => {
       reps: ex.reps,
       weightKg: ex.weightKg,
     })),
+    fatigueImpacts: impacts,
   });
 
   for (const snapshot of fatigueSnapshots) {

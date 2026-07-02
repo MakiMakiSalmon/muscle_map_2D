@@ -139,7 +139,18 @@ describe('POST /api/workout', () => {
     expect(res.status).toBe(201);
     const body = await res.json();
     expect(body.session.exercises).toHaveLength(1);
-    expect(body.fatigueImpacts).toBeDefined();
+    expect(body.fatigueImpacts).toEqual(expect.objectContaining({
+      chest: 40,
+      triceps_left: 40,
+      shoulders_left: 20,
+    }));
+    expect(mockBatchSet).toHaveBeenNthCalledWith(
+      1,
+      expect.anything(),
+      expect.objectContaining({
+        fatigueImpacts: body.fatigueImpacts,
+      }),
+    );
     // batch.set が（セッション1件 + スナップショット1件）呼ばれる
     expect(mockBatchSet).toHaveBeenCalledTimes(2);
     expect(mockBatchCommit).toHaveBeenCalledOnce();
