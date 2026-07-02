@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { clientAuth } from '@/lib/firebase/client';
 import { queryKeys } from '@/lib/queryKeys';
-import type { WorkoutSaveResult, WorkoutSession } from '@/types/domain';
+import type { WorkoutHistoryResponse, WorkoutSaveResultDto } from '@/types/api';
 
 interface WorkoutSessionInput {
   performedAt: string;
@@ -11,11 +11,6 @@ interface WorkoutSessionInput {
     reps: number | null;
     weightKg: number | null;
   }[];
-}
-
-interface WorkoutHistoryResponse {
-  sessions: WorkoutSession[];
-  nextCursor: string | null;
 }
 
 async function getToken(): Promise<string> {
@@ -48,7 +43,7 @@ export function useWorkout() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (input: WorkoutSessionInput): Promise<WorkoutSaveResult> => {
+    mutationFn: async (input: WorkoutSessionInput): Promise<WorkoutSaveResultDto> => {
       const token = await getToken();
       const res = await fetch('/api/workout', {
         method: 'POST',
@@ -62,7 +57,7 @@ export function useWorkout() {
         const err = await res.json().catch(() => ({}));
         throw new Error((err as { error?: string }).error ?? `HTTP ${res.status}`);
       }
-      return res.json() as Promise<WorkoutSaveResult>;
+      return res.json() as Promise<WorkoutSaveResultDto>;
     },
 
     onSettled: () => {

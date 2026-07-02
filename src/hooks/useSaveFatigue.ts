@@ -5,7 +5,8 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { clientAuth } from '@/lib/firebase/client';
 import { queryKeys } from '@/lib/queryKeys';
 import { MUSCLE_RECOVERY_HOURS } from '@/types/domain';
-import type { CurrentFatigueMap, FatigueSnapshot, MuscleId } from '@/types/domain';
+import type { CurrentFatigueMap, MuscleId } from '@/types/domain';
+import type { SaveFatigueResponse } from '@/types/api';
 
 export function useSaveFatigue() {
   const queryClient = useQueryClient();
@@ -27,7 +28,7 @@ export function useSaveFatigue() {
         throw new Error((err as { error?: string }).error ?? `HTTP ${res.status}`);
       }
       const json = await res.json();
-      return (json as { snapshot: FatigueSnapshot }).snapshot;
+      return (json as SaveFatigueResponse).snapshot;
     },
 
     onMutate: async ({ muscleId, value }) => {
