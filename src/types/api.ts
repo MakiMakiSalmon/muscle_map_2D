@@ -48,3 +48,8 @@ export interface WorkoutHistoryResponse {
   sessions: WorkoutSessionDto[];
   nextCursor: string | null;
 }
+
+export interface DeleteWorkoutResponse {
+  deletedSessionId: string;
+  affectedMuscles: MuscleId[];
+}

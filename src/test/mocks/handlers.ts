@@ -68,4 +68,11 @@ export const handlers = [
   http.get("/api/workout/history", () =>
     HttpResponse.json({ sessions: [], nextCursor: null }),
   ),
+
+  http.delete("/api/workout/:id", ({ params }) =>
+    HttpResponse.json({
+      deletedSessionId: String(params.id),
+      affectedMuscles: [],
+    }),
+  ),
 ];
