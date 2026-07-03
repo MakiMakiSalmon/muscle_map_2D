@@ -9,6 +9,7 @@ import { adminDb } from '@/lib/firebase/admin';
 import { type Exercise, type MuscleGroup } from '@/types/domain';
 import { computeFatigueImpact, mergeImpacts } from '@/lib/workout/fatigueImpact';
 import { applyWorkoutToFatigue } from '@/lib/workout/applyWorkoutToFatigue';
+import { buildCurrentMerge, fatigueCurrentDocRef } from '@/lib/fatigue/currentDoc';
 
 const workoutSchema = z.object({
   performedAt: z.string().refine((val) => {
@@ -88,7 +89,8 @@ export const POST = withAuth(async (req: NextRequest, { uid }) => {
   const performedAtDate = new Date(performedAt);
 
   // performedAt 時点の絶対値としてスナップショットを生成（docs/v3/design.md D4-1）
-  const fatigueSnapshots = await applyWorkoutToFatigue(uid, impacts, sessionId, db, performedAtDate, now);
+  const fatigueResult = await applyWorkoutToFatigue(uid, impacts, sessionId, db, performedAtDate, now);
+  const { current, snapshots: fatigueSnapshots } = fatigueResult;
 
   // セッション + スナップショットを batch write で原子的に保存（§12-1）
   const batch = db.batch();
@@ -114,6 +116,10 @@ export const POST = withAuth(async (req: NextRequest, { uid }) => {
       source: snapshot.source,
       workoutSessionId: snapshot.workoutSessionId,
     });
+  }
+  const currentMerge = buildCurrentMerge(current, fatigueSnapshots);
+  if (currentMerge) {
+    batch.set(fatigueCurrentDocRef(uid, db), currentMerge, { merge: true });
   }
 
   await batch.commit();

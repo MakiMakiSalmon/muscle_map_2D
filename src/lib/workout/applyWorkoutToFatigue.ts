@@ -1,7 +1,12 @@
 import type { Firestore } from 'firebase-admin/firestore';
 import { type MuscleId, type FatigueSnapshotInput } from '@/types/domain';
 import { applyDecay } from '@/lib/fatigue/decay';
-import { getLatestSnapshot } from '@/lib/fatigue/getLatestSnapshot';
+import { readFatigueCurrent, type FatigueCurrentDocument } from '@/lib/fatigue/currentDoc';
+
+export type WorkoutFatigueResult = {
+  current: FatigueCurrentDocument | null;
+  snapshots: FatigueSnapshotInput[];
+};
 
 export async function applyWorkoutToFatigue(
   uid: string,
@@ -10,34 +15,36 @@ export async function applyWorkoutToFatigue(
   db: Firestore,
   performedAt: Date,
   now = new Date(),
-): Promise<FatigueSnapshotInput[]> {
+): Promise<WorkoutFatigueResult> {
   const entries = Object.entries(impacts) as [MuscleId, number][];
+  const current = await readFatigueCurrent(uid, db);
 
-  const snapshots: Array<FatigueSnapshotInput | null> = await Promise.all(
-    entries.map(async ([muscleId, delta]): Promise<FatigueSnapshotInput | null> => {
-      const latest = await getLatestSnapshot(uid, muscleId, db);
+  const snapshots: Array<FatigueSnapshotInput | null> = entries.map(([muscleId, delta]): FatigueSnapshotInput | null => {
+    const latest = current?.muscles[muscleId];
 
-      if (latest && latest.recordedAt.getTime() > performedAt.getTime()) {
-        return null;
-      }
+    if (latest && latest.recordedAt.getTime() > performedAt.getTime()) {
+      return null;
+    }
 
-      const baseAtPerformed = latest
-        ? applyDecay(latest.value, latest.recordedAt, muscleId, performedAt)
-        : 0;
-      const nextValue = Math.min(100, baseAtPerformed + delta);
+    const baseAtPerformed = latest
+      ? applyDecay(latest.value, latest.recordedAt, muscleId, performedAt)
+      : 0;
+    const nextValue = Math.min(100, baseAtPerformed + delta);
 
-      if (nextValue === 0) return null;
+    if (nextValue === 0) return null;
 
-      return {
-        muscleId,
-        value: nextValue,
-        recordedAt: performedAt,
-        createdAt: now,
-        source: 'workout' as const,
-        workoutSessionId,
-      };
-    }),
-  );
+    return {
+      muscleId,
+      value: nextValue,
+      recordedAt: performedAt,
+      createdAt: now,
+      source: 'workout' as const,
+      workoutSessionId,
+    };
+  });
 
-  return snapshots.filter((snapshot): snapshot is FatigueSnapshotInput => snapshot !== null);
+  return {
+    current,
+    snapshots: snapshots.filter((snapshot): snapshot is FatigueSnapshotInput => snapshot !== null),
+  };
 }

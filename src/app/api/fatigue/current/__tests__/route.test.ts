@@ -10,14 +10,14 @@ vi.mock('@/lib/firebase/admin', () => ({
   adminDb: vi.fn().mockReturnValue({}),
 }));
 
-vi.mock('@/lib/fatigue/getLatestSnapshot', () => ({
-  getLatestSnapshot: vi.fn(),
+vi.mock('@/lib/fatigue/currentDoc', () => ({
+  readFatigueCurrent: vi.fn(),
 }));
 
 import { GET } from '../route';
-import { getLatestSnapshot } from '@/lib/fatigue/getLatestSnapshot';
+import { readFatigueCurrent } from '@/lib/fatigue/currentDoc';
 import { MUSCLE_IDS } from '@/types/domain';
-const mockGetLatestSnapshot = vi.mocked(getLatestSnapshot);
+const mockReadFatigueCurrent = vi.mocked(readFatigueCurrent);
 
 function makeRequest(token?: string) {
   return new NextRequest('http://localhost/api/fatigue/current', {
@@ -29,7 +29,7 @@ describe('GET /api/fatigue/current', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockVerifyIdToken.mockResolvedValue({ uid: 'test_uid' } as never);
-    mockGetLatestSnapshot.mockResolvedValue(null);
+    mockReadFatigueCurrent.mockResolvedValue(null);
   });
 
   it('認証なし → 401', async () => {
@@ -41,6 +41,7 @@ describe('GET /api/fatigue/current', () => {
   it('全筋肉未記録 → 16 件すべて savedValue=0 で補完して返す', async () => {
     const res = await GET(makeRequest('valid_token'));
     expect(res.status).toBe(200);
+    expect(mockReadFatigueCurrent).toHaveBeenCalledOnce();
     const body = await res.json();
     expect(Object.keys(body.data)).toHaveLength(MUSCLE_IDS.length);
     for (const id of MUSCLE_IDS) {
@@ -52,19 +53,17 @@ describe('GET /api/fatigue/current', () => {
 
   it('記録済み筋肉 → 回復計算後の値を含む完全なマップを返す', async () => {
     const now = new Date();
-    mockGetLatestSnapshot.mockImplementation(async (_uid, muscleId) => {
-      if (muscleId === 'chest') {
-        return {
-          id: 'snap1',
-          muscleId: 'chest' as const,
+    mockReadFatigueCurrent.mockResolvedValue({
+      muscles: {
+        chest: {
           value: 80,
           recordedAt: now,
           createdAt: now,
           source: 'manual' as const,
           workoutSessionId: null,
-        };
-      }
-      return null;
+        },
+      },
+      updatedAt: now,
     });
 
     const res = await GET(makeRequest('valid_token'));

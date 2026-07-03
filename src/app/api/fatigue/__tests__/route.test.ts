@@ -2,17 +2,23 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { NextRequest } from 'next/server';
 import { Timestamp } from 'firebase-admin/firestore';
 
-const { mockDocSet, mockVerifyIdToken } = vi.hoisted(() => ({
-  mockDocSet: vi.fn().mockResolvedValue(undefined),
+const { mockBatchSet, mockBatchCommit, mockCurrentGet, mockVerifyIdToken } = vi.hoisted(() => ({
+  mockBatchSet: vi.fn(),
+  mockBatchCommit: vi.fn().mockResolvedValue(undefined),
+  mockCurrentGet: vi.fn().mockResolvedValue({ exists: false }),
   mockVerifyIdToken: vi.fn(),
 }));
 
 vi.mock('@/lib/firebase/admin', () => ({
   adminAuth: vi.fn().mockReturnValue({ verifyIdToken: mockVerifyIdToken }),
   adminDb: vi.fn().mockReturnValue({
-    collection: vi.fn().mockReturnValue({
-      doc: vi.fn().mockReturnValue({ id: 'snap_auto_id', set: mockDocSet }),
-    }),
+    collection: vi.fn((path: string) => ({
+      doc: vi.fn((id?: string) => ({
+        id: id ?? 'snap_auto_id',
+        get: path.endsWith('/state') ? mockCurrentGet : undefined,
+      })),
+    })),
+    batch: vi.fn(() => ({ set: mockBatchSet, commit: mockBatchCommit })),
   }),
 }));
 
@@ -33,7 +39,8 @@ describe('POST /api/fatigue', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockVerifyIdToken.mockResolvedValue({ uid: 'test_uid' } as never);
-    mockDocSet.mockResolvedValue(undefined);
+    mockCurrentGet.mockResolvedValue({ exists: false });
+    mockBatchCommit.mockResolvedValue(undefined);
   });
 
   it('認証なし → 401', async () => {
@@ -56,8 +63,8 @@ describe('POST /api/fatigue', () => {
 
   it('Firestore に source=manual, workoutSessionId=null, Timestamp で書き込む', async () => {
     await POST(makeRequest({ muscleId: 'back', value: 50 }, 'valid_token'));
-    expect(mockDocSet).toHaveBeenCalledOnce();
-    const [data] = mockDocSet.mock.calls[0];
+    expect(mockBatchSet).toHaveBeenCalledTimes(2);
+    const [, data] = mockBatchSet.mock.calls[0];
     expect(data.muscleId).toBe('back');
     expect(data.value).toBe(50);
     expect(data.source).toBe('manual');
@@ -65,6 +72,18 @@ describe('POST /api/fatigue', () => {
     expect(data.recordedAt).toBeInstanceOf(Timestamp);
     expect(data.createdAt).toBeInstanceOf(Timestamp);
     expect(data.createdAt.toDate()).toEqual(data.recordedAt.toDate());
+  });
+
+  it('snapshot と current を同一 batch で書き込む', async () => {
+    await POST(makeRequest({ muscleId: 'chest', value: 75 }, 'valid_token'));
+
+    expect(mockBatchSet).toHaveBeenCalledTimes(2);
+    const currentWrite = mockBatchSet.mock.calls[1];
+    expect(currentWrite[0].id).toBe('fatigueCurrent');
+    expect(currentWrite[1].muscles.chest.value).toBe(75);
+    expect(currentWrite[1].muscles.chest.createdAt).toBeInstanceOf(Timestamp);
+    expect(currentWrite[2]).toEqual({ merge: true });
+    expect(mockBatchCommit).toHaveBeenCalledOnce();
   });
 
   it('value = 0（最小値境界）→ 201', async () => {
