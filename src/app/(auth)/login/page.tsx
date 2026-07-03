@@ -3,7 +3,13 @@
 export const dynamic = 'force-dynamic';
 
 import { useEffect, useState } from 'react';
-import { signInWithPopup, GoogleAuthProvider, onAuthStateChanged } from 'firebase/auth';
+import {
+  getRedirectResult,
+  signInWithPopup,
+  signInWithRedirect,
+  GoogleAuthProvider,
+  onAuthStateChanged,
+} from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 import { clientAuth } from '@/lib/firebase/client';
 
@@ -13,6 +19,14 @@ export default function LoginPage() {
   const [error, setError] = useState('');
 
   useEffect(() => {
+    void getRedirectResult(clientAuth)
+      .then((result) => {
+        if (result?.user) router.replace('/');
+      })
+      .catch(() => {
+        setError('ログインに失敗しました。もう一度お試しください。');
+      });
+
     const unsubscribe = onAuthStateChanged(clientAuth, (user) => {
       if (user) router.replace('/');
     });
@@ -22,11 +36,20 @@ export default function LoginPage() {
   const handleGoogleLogin = async () => {
     setIsLoading(true);
     setError('');
+    const provider = new GoogleAuthProvider();
     try {
-      const provider = new GoogleAuthProvider();
       await signInWithPopup(clientAuth, provider);
       router.replace('/');
-    } catch {
+    } catch (err) {
+      const code = typeof err === 'object' && err && 'code' in err ? String(err.code) : '';
+      if (
+        code === 'auth/popup-blocked' ||
+        code === 'auth/popup-closed-by-user' ||
+        code === 'auth/cancelled-popup-request'
+      ) {
+        await signInWithRedirect(clientAuth, provider);
+        return;
+      }
       setError('ログインに失敗しました。もう一度お試しください。');
       setIsLoading(false);
     }

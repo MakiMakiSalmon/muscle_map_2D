@@ -7,7 +7,7 @@ import { getFatigueColor } from '@/lib/fatigue/colorMap';
 import type { MuscleGroup } from '@/types/domain';
 
 export default function BottomBar() {
-  const fatigueData = useFatigueWithDecay();
+  const { data: fatigueData } = useFatigueWithDecay();
   const { openResetModal, setSelectedMuscle, setActivePanelTab } = useUIStore();
 
   const getGroupValue = (group: MuscleGroup): number => {
@@ -23,8 +23,8 @@ export default function BottomBar() {
   };
 
   return (
-    <footer className="bg-white border-t border-gray-200 px-4 py-2">
-      <div className="flex items-center gap-2 flex-wrap">
+    <footer className="border-t border-gray-200 bg-white px-3 py-2 md:px-4">
+      <div className="flex items-center gap-2 overflow-x-auto pb-1">
         {MUSCLE_GROUPS.map((group) => {
           const value = getGroupValue(group);
           const color = getFatigueColor(value);
@@ -32,7 +32,7 @@ export default function BottomBar() {
             <button
               key={group}
               onClick={() => handleBadgeClick(group)}
-              className="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-gray-100 hover:bg-gray-200 transition-colors"
+              className="flex flex-shrink-0 items-center gap-1 rounded-full bg-gray-100 px-2 py-1 text-xs font-medium transition-colors hover:bg-gray-200"
               title={MUSCLE_GROUP_LABELS[group]}
             >
               <span
@@ -45,10 +45,10 @@ export default function BottomBar() {
           );
         })}
 
-        <div className="ml-auto">
+        <div className="ml-auto flex-shrink-0">
           <button
             onClick={openResetModal}
-            className="text-xs text-red-600 hover:text-red-800 font-medium transition-colors px-2 py-1 rounded hover:bg-red-50"
+            className="whitespace-nowrap rounded px-2 py-1 text-xs font-medium text-red-600 transition-colors hover:bg-red-50 hover:text-red-800"
           >
             すべてリセット
           </button>
