@@ -29,7 +29,7 @@ function HistoryTabContent({ muscleId }: { muscleId: MuscleId }) {
       <div className="text-sm font-medium text-gray-600">
         {MUSCLE_LABELS[muscleId]} の疲労履歴
       </div>
-      <FatigueHistoryChart history={history} />
+      <FatigueHistoryChart history={history} muscleId={muscleId} />
     </div>
   );
 }
