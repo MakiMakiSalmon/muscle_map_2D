@@ -35,9 +35,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-gray-50">
+    <div className="flex min-h-screen flex-col bg-gray-50">
       <Header />
-      <main className="flex-1 overflow-hidden">{children}</main>
+      <main className="min-h-0 flex-1 overflow-y-auto md:overflow-hidden">{children}</main>
       <BottomBar />
       <WorkoutInputModal />
       <ResetConfirmModal />

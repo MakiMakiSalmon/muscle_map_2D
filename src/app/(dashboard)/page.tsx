@@ -22,11 +22,11 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="flex h-full overflow-hidden">
+    <div className="flex min-h-full flex-col md:h-full md:flex-row md:overflow-hidden">
       {/* Left: Body Diagram */}
-      <div className="flex flex-col items-center py-4 px-6 border-r border-gray-200 bg-white min-w-[200px] max-w-[280px] flex-shrink-0 overflow-y-auto">
+      <div className="flex flex-col items-center border-b border-gray-200 bg-white px-4 py-4 md:min-w-[200px] md:max-w-[280px] md:flex-shrink-0 md:overflow-y-auto md:border-b-0 md:border-r md:px-6">
         {/* Front / Back toggle */}
-        <div className="flex gap-1 mb-4 p-1 bg-gray-100 rounded-lg self-stretch">
+        <div className="mb-4 flex gap-1 self-stretch rounded-lg bg-gray-100 p-1">
           {(['front', 'back'] as const).map((v) => (
             <button
               key={v}
@@ -65,7 +65,7 @@ export default function DashboardPage() {
         )}
 
         {/* Color legend */}
-        <div className="flex items-center gap-2 mt-4 flex-wrap justify-center">
+        <div className="mt-4 flex items-center justify-center gap-2 self-stretch overflow-x-auto pb-1 md:flex-wrap md:overflow-visible md:pb-0">
           {[
             { color: '#dddddd', label: '0%' },
             { color: '#90ee90', label: '低' },
@@ -78,14 +78,14 @@ export default function DashboardPage() {
                 className="inline-block w-3 h-3 rounded-sm border border-gray-300"
                 style={{ backgroundColor: color }}
               />
-              <span className="text-xs text-gray-500">{label}</span>
+              <span className="whitespace-nowrap text-xs text-gray-500">{label}</span>
             </div>
           ))}
         </div>
       </div>
 
       {/* Right: Fatigue Panel */}
-      <div className="flex-1 overflow-hidden">
+      <div className="min-h-[360px] flex-1 overflow-hidden bg-white md:min-h-0">
         <FatiguePanel selectedMuscle={selectedMuscle} />
       </div>
       <Toast />
