@@ -490,7 +490,7 @@ exercises: {
 
 **D0 不変条件のテストは省略不可**: 上表の `applyWorkoutToFatigue`（順序逆転＝INV-2）・`buildCurrentMerge`（最大 recordedAt＝INV-1）・`DELETE /api/workout/[id]`（最新限定＋409＝INV-3）の各ケースは D0 の必達条件であり、該当ブランチのマージ条件とする。
 
-**E2E（Playwright）方針**: `test/e2e-smoke` ブランチ内で `@playwright/test` を devDependency 追加（採用確定済み: Q6）。認証は Firebase Auth エミュレータ or テスト用カスタムトークンのどちらかを着手時に PoC で決定し、本節を更新してから本実装する。CI では PR 時にスモークのみ・リトライ 1 回・5 分以内を目標。
+**E2E（Playwright）方針**: `test/e2e-smoke` ブランチ内で `@playwright/test` を devDependency 追加（採用確定済み: Q6）。認証モックは PoC の結果、Firebase Auth エミュレータではなくテスト用カスタムトークン方式を採用する。`NEXT_PUBLIC_E2E_AUTH_TOKEN` がある時だけ UI をログイン済み扱いにし、API 呼び出しの Bearer には同トークンを使う。E2E では Playwright の route mock で `/api/*` を応答し、外部 Firebase / Firestore へ接続しない。CI では PR 時にスモークのみ・chromium のみ・リトライ 1 回・5 分以内を目標。
 
 ---
 

@@ -3,17 +3,29 @@
 import { useState, useEffect } from 'react';
 import { signOut, onAuthStateChanged, type User } from 'firebase/auth';
 import { clientAuth } from '@/lib/firebase/client';
+import { E2E_USER, isE2EAuthEnabled } from '@/lib/auth/e2eAuth';
 
 export default function Header() {
   const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
+    if (isE2EAuthEnabled()) {
+      return undefined;
+    }
     return onAuthStateChanged(clientAuth, setUser);
   }, []);
 
   const handleSignOut = async () => {
+    if (isE2EAuthEnabled()) {
+      window.location.assign('/login');
+      return;
+    }
     await signOut(clientAuth);
   };
+
+  const displayName = isE2EAuthEnabled()
+    ? E2E_USER.displayName
+    : user?.displayName ?? user?.email;
 
   return (
     <header className="flex items-center justify-between gap-3 border-b border-gray-200 bg-white px-4 py-3 shadow-sm md:px-6">
@@ -29,7 +41,7 @@ export default function Header() {
           />
         )}
         <span className="hidden text-sm text-gray-600 sm:inline">
-          {user?.displayName ?? user?.email}
+          {displayName}
         </span>
         <button
           onClick={handleSignOut}

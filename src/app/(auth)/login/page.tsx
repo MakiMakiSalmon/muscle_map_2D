@@ -12,6 +12,7 @@ import {
 } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 import { clientAuth } from '@/lib/firebase/client';
+import { isE2EAuthEnabled } from '@/lib/auth/e2eAuth';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -36,6 +37,10 @@ export default function LoginPage() {
   const handleGoogleLogin = async () => {
     setIsLoading(true);
     setError('');
+    if (isE2EAuthEnabled()) {
+      router.replace('/');
+      return;
+    }
     const provider = new GoogleAuthProvider();
     try {
       await signInWithPopup(clientAuth, provider);

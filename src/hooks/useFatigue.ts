@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { clientAuth } from '@/lib/firebase/client';
+import { getE2EAuthToken } from '@/lib/auth/e2eAuth';
 import { queryKeys } from '@/lib/queryKeys';
 import { useUIStore } from '@/stores/uiStore';
 import type { CurrentFatigueMap, MuscleId } from '@/types/domain';
@@ -21,6 +22,8 @@ export class ApiError extends Error {
 }
 
 async function getToken(): Promise<string> {
+  const e2eToken = getE2EAuthToken();
+  if (e2eToken) return e2eToken;
   const token = await clientAuth.currentUser?.getIdToken();
   if (!token) throw new ApiError('Not authenticated', 401);
   return token;

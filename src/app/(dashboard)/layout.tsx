@@ -6,6 +6,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 import { clientAuth } from '@/lib/firebase/client';
+import { isE2EAuthEnabled } from '@/lib/auth/e2eAuth';
 import Header from '@/components/layout/Header';
 import BottomBar from '@/components/layout/BottomBar';
 import WorkoutInputModal from '@/components/workout/WorkoutInputModal';
@@ -16,6 +17,10 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const [authChecked, setAuthChecked] = useState(false);
 
   useEffect(() => {
+    if (isE2EAuthEnabled()) {
+      setAuthChecked(true);
+      return undefined;
+    }
     const unsubscribe = onAuthStateChanged(clientAuth, (user) => {
       if (!user) {
         router.replace('/login');
