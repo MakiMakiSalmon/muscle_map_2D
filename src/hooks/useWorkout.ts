@@ -14,6 +14,7 @@ interface WorkoutSessionInput {
     sets: number;
     reps: number | null;
     weightKg: number | null;
+    rpe: number | null;
   }[];
 }
 
@@ -83,6 +84,7 @@ function predictWorkoutImpacts(
           exercise,
           workoutExercise.sets,
           workoutExercise.reps,
+          workoutExercise.rpe,
         ),
       ];
     }),

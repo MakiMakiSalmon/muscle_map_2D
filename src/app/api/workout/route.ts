@@ -25,6 +25,7 @@ const workoutSchema = z.object({
         sets: z.number().int().min(1).max(99),
         reps: z.number().int().min(1).max(999).nullable(),
         weightKg: z.number().min(0).max(999).nullable(),
+        rpe: z.number().int().min(1).max(10).nullable().optional().transform((value) => value ?? null),
       })
     )
     .min(1)
@@ -79,7 +80,7 @@ export const POST = withAuth(async (req: NextRequest, { uid }) => {
   const impacts = mergeImpacts(
     exercises.map((ex) => {
       const exercise = exerciseMap.get(ex.exerciseId)!;
-      return computeFatigueImpact(exercise, ex.sets, ex.reps);
+      return computeFatigueImpact(exercise, ex.sets, ex.reps, ex.rpe);
     })
   );
 
@@ -102,6 +103,7 @@ export const POST = withAuth(async (req: NextRequest, { uid }) => {
       sets: ex.sets,
       reps: ex.reps,
       weightKg: ex.weightKg,
+      rpe: ex.rpe,
     })),
     fatigueImpacts: impacts,
   });
@@ -134,6 +136,7 @@ export const POST = withAuth(async (req: NextRequest, { uid }) => {
           sets: ex.sets,
           reps: ex.reps,
           weightKg: ex.weightKg,
+          rpe: ex.rpe,
         })),
       },
       fatigueImpacts: impacts,

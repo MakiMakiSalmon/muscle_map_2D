@@ -64,6 +64,7 @@ describe('WorkoutTab', () => {
                   sets: 3,
                   reps: 10,
                   weightKg: null,
+                  rpe: null,
                 },
               ],
             },

@@ -61,7 +61,7 @@ function makeRequest(body: unknown, token = 'valid_token') {
 const VALID_BODY = {
   performedAt: new Date(Date.now() - 60_000).toISOString(), // 1分前
   exercises: [
-    { exerciseId: 'bench_press', sets: 3, reps: 10, weightKg: 60 },
+    { exerciseId: 'bench_press', sets: 3, reps: 10, weightKg: 60, rpe: null },
   ],
 };
 
@@ -113,7 +113,23 @@ describe('POST /api/workout', () => {
   it('sets が範囲外（0）→ 400', async () => {
     const res = await POST(makeRequest({
       ...VALID_BODY,
-      exercises: [{ exerciseId: 'bench_press', sets: 0, reps: 10, weightKg: 60 }],
+      exercises: [{ exerciseId: 'bench_press', sets: 0, reps: 10, weightKg: 60, rpe: null }],
+    }));
+    expect(res.status).toBe(400);
+  });
+
+  it('rpe が範囲外（11）→ 400', async () => {
+    const res = await POST(makeRequest({
+      ...VALID_BODY,
+      exercises: [{ exerciseId: 'bench_press', sets: 3, reps: 10, weightKg: 60, rpe: 11 }],
+    }));
+    expect(res.status).toBe(400);
+  });
+
+  it('rpe が小数 → 400', async () => {
+    const res = await POST(makeRequest({
+      ...VALID_BODY,
+      exercises: [{ exerciseId: 'bench_press', sets: 3, reps: 10, weightKg: 60, rpe: 7.5 }],
     }));
     expect(res.status).toBe(400);
   });
@@ -132,7 +148,7 @@ describe('POST /api/workout', () => {
     }));
     const res = await POST(makeRequest({
       ...VALID_BODY,
-      exercises: [{ exerciseId: 'not_exist', sets: 3, reps: 10, weightKg: 60 }],
+      exercises: [{ exerciseId: 'not_exist', sets: 3, reps: 10, weightKg: 60, rpe: null }],
     }));
     expect(res.status).toBe(400);
     const body = await res.json();
@@ -162,6 +178,36 @@ describe('POST /api/workout', () => {
     expect(mockBatchSet.mock.calls[2][1].muscles.chest.value).toBe(60);
     expect(mockBatchSet.mock.calls[2][2]).toEqual({ merge: true });
     expect(mockBatchCommit).toHaveBeenCalledOnce();
+  });
+
+  it('rpe 10 を疲労デルタ・保存セッション・レスポンスに反映する', async () => {
+    const bodyWithRpe = {
+      ...VALID_BODY,
+      exercises: [
+        { exerciseId: 'bench_press', sets: 3, reps: 10, weightKg: 60, rpe: 10 },
+      ],
+    };
+
+    const res = await POST(makeRequest(bodyWithRpe));
+
+    expect(res.status).toBe(201);
+    const body = await res.json();
+    expect(body.fatigueImpacts).toEqual(expect.objectContaining({
+      chest: 48,
+      triceps_left: 48,
+      shoulders_left: 24,
+    }));
+    expect(body.session.exercises[0].rpe).toBe(10);
+    const sessionWrite = mockBatchSet.mock.calls[0][1];
+    expect(sessionWrite.exercises[0].rpe).toBe(10);
+    expect(mockApplyWorkout).toHaveBeenCalledWith(
+      'test_uid',
+      expect.objectContaining({ chest: 48 }),
+      'auto_id',
+      expect.anything(),
+      expect.any(Date),
+      expect.any(Date),
+    );
   });
 
   it('applyWorkoutToFatigue に performedAt と now を渡す', async () => {

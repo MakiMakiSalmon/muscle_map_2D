@@ -28,7 +28,7 @@ function makeSession(fatigueImpacts?: WorkoutSession['fatigueImpacts']): Workout
   return {
     id: 'session1',
     performedAt: '2026-04-01T10:00:00.000Z',
-    exercises: [{ exerciseId: 'bench_press', sets: 3, reps: 10, weightKg: 60 }],
+    exercises: [{ exerciseId: 'bench_press', sets: 3, reps: 10, weightKg: 60, rpe: null }],
     ...(fatigueImpacts !== undefined ? { fatigueImpacts } : {}),
   };
 }

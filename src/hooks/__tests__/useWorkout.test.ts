@@ -158,7 +158,7 @@ describe('useWorkout', () => {
     act(() => {
       result.current.mutate({
         performedAt: mutationPerformedAt.toISOString(),
-        exercises: [{ exerciseId: 'bench_press', sets: 3, reps: 10, weightKg: null }],
+        exercises: [{ exerciseId: 'bench_press', sets: 3, reps: 10, weightKg: null, rpe: null }],
       });
     });
 
@@ -215,7 +215,7 @@ describe('useWorkout', () => {
     act(() => {
       result.current.mutate({
         performedAt: performedAt.toISOString(),
-        exercises: [{ exerciseId: 'bench_press', sets: 3, reps: 10, weightKg: null }],
+        exercises: [{ exerciseId: 'bench_press', sets: 3, reps: 10, weightKg: null, rpe: null }],
       });
     });
 
@@ -255,7 +255,7 @@ describe('useWorkout', () => {
     act(() => {
       result.current.mutate({
         performedAt: performedAt.toISOString(),
-        exercises: [{ exerciseId: 'bench_press', sets: 3, reps: 10, weightKg: null }],
+        exercises: [{ exerciseId: 'bench_press', sets: 3, reps: 10, weightKg: null, rpe: null }],
       });
     });
 

@@ -33,6 +33,24 @@ describe('computeFatigueImpact', () => {
     expect(result.chest).toBe(40);
   });
 
+  it('rpe=null のとき既存結果と一致する', () => {
+    const baseline = computeFatigueImpact(benchPress, 3, 10);
+    const result = computeFatigueImpact(benchPress, 3, 10, null);
+    expect(result).toEqual(baseline);
+  });
+
+  it('RPE 1 は 0.66 倍で計算する', () => {
+    const result = computeFatigueImpact(benchPress, 3, 10, 1);
+    expect(result.chest).toBe(26);
+    expect(result.shoulders_left).toBe(13);
+  });
+
+  it('RPE 10 は 1.2 倍で計算する', () => {
+    const result = computeFatigueImpact(benchPress, 3, 10, 10);
+    expect(result.chest).toBe(48);
+    expect(result.shoulders_left).toBe(24);
+  });
+
   it('ボリューム倍増 6×10: primary=80(上限)', () => {
     const result = computeFatigueImpact(benchPress, 6, 10);
     expect(result.chest).toBe(80);

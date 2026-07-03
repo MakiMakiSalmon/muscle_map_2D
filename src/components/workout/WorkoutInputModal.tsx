@@ -43,7 +43,7 @@ export default function WorkoutInputModal() {
       ...prev,
       {
         exercise,
-        input: { exerciseId: exercise.id, sets: 3, reps: 10, weightKg: null },
+        input: { exerciseId: exercise.id, sets: 3, reps: 10, weightKg: null, rpe: null },
       },
     ]);
   };

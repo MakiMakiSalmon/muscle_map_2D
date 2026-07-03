@@ -115,6 +115,7 @@ export interface WorkoutExerciseInput {
   sets: number;
   reps: number | null;
   weightKg: number | null;
+  rpe: number | null;
 }
 
 export interface WorkoutSession {

@@ -22,7 +22,7 @@ function SessionCard({
       session.exercises.map((ex) => {
         const exercise = exerciseMap.get(ex.exerciseId);
         if (!exercise) return {};
-        return computeFatigueImpact(exercise, ex.sets, ex.reps);
+        return computeFatigueImpact(exercise, ex.sets, ex.reps, ex.rpe);
       }),
     );
   const grouped = collapseToGroups(impacts);

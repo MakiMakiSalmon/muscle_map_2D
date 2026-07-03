@@ -55,7 +55,7 @@ describe('FatiguePreview', () => {
     const items = [
       {
         exercise: benchPress,
-        input: { exerciseId: 'bench_press', sets: 3, reps: 10, weightKg: null } as WorkoutExerciseInput,
+        input: { exerciseId: 'bench_press', sets: 3, reps: 10, weightKg: null, rpe: null },
       },
     ];
 
@@ -71,11 +71,11 @@ describe('FatiguePreview', () => {
     const items = [
       {
         exercise: benchPress,
-        input: { exerciseId: 'bench_press', sets: 3, reps: 10, weightKg: null } as WorkoutExerciseInput,
+        input: { exerciseId: 'bench_press', sets: 3, reps: 10, weightKg: null, rpe: null },
       },
       {
         exercise: squat,
-        input: { exerciseId: 'squat', sets: 3, reps: 10, weightKg: null } as WorkoutExerciseInput,
+        input: { exerciseId: 'squat', sets: 3, reps: 10, weightKg: null, rpe: null },
       },
     ];
 
@@ -87,6 +87,20 @@ describe('FatiguePreview', () => {
   it('種目が空のとき何も表示しない', () => {
     const { container } = render(<FatiguePreview items={[]} />);
     expect(container.firstChild).toBeNull();
+  });
+
+  it('RPE 込みでプレビューを再計算する', () => {
+    const items = [
+      {
+        exercise: benchPress,
+        input: { exerciseId: 'bench_press', sets: 3, reps: 10, weightKg: null, rpe: 10 },
+      },
+    ];
+
+    render(<FatiguePreview items={items} />);
+
+    expect(screen.getByText(/胸部.*\+48%/)).toBeDefined();
+    expect(screen.getByText(/肩.*\+24%/)).toBeDefined();
   });
 });
 
@@ -139,6 +153,7 @@ describe('WorkoutInputModal', () => {
               sets: 3,
               reps: 10,
               weightKg: null,
+              rpe: null,
             }),
           ],
         }),
@@ -153,6 +168,7 @@ describe('ExerciseRow', () => {
     sets: 3,
     reps: 10,
     weightKg: null,
+    rpe: null,
   };
 
   it('種目名を表示する', () => {
@@ -166,6 +182,23 @@ describe('ExerciseRow', () => {
     );
 
     expect(screen.getByText('ベンチプレス')).toBeDefined();
+  });
+
+  it('RPE セレクトで onChange が呼ばれる', async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+
+    render(
+      <ExerciseRow
+        exercise={benchPress}
+        input={defaultInput}
+        onChange={onChange}
+        onRemove={vi.fn()}
+      />,
+    );
+
+    await user.selectOptions(screen.getByLabelText('RPE'), '10');
+    expect(onChange).toHaveBeenCalledWith({ ...defaultInput, rpe: 10 });
   });
 
   it('削除ボタンで onRemove が呼ばれる', async () => {
