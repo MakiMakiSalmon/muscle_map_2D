@@ -132,6 +132,7 @@ test('ログインから主要フローを通せる', async ({ page }) => {
   await expect(chestLayer).toHaveAttribute('fill', '#ffd700');
 
   await page.getByRole('button', { name: 'トレーニング' }).click();
+  await page.getByRole('button', { name: '+ 新しいトレーニングを記録する' }).click();
   await page.getByPlaceholder('種目を検索...').fill('腕立て');
   await page.getByRole('button', { name: /腕立て伏せ/ }).click();
   await page.getByRole('button', { name: '保存して反映' }).click();
