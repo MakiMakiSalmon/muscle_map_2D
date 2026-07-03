@@ -89,13 +89,6 @@ function predictWorkoutImpacts(
   );
 }
 
-function pushWorkoutErrorToast(message: string) {
-  const state = useUIStore.getState() as ReturnType<typeof useUIStore.getState> & {
-    pushToast?: (type: 'error', message: string) => void;
-  };
-  state.pushToast?.('error', message);
-}
-
 export function useWorkoutHistory(limit = 10, cursor?: string) {
   return useQuery({
     queryKey: [...queryKeys.workout.history, { limit, cursor }],
@@ -118,6 +111,7 @@ export function useWorkoutHistory(limit = 10, cursor?: string) {
 
 export function useWorkout() {
   const queryClient = useQueryClient();
+  const pushToast = useUIStore((state) => state.pushToast);
 
   return useMutation({
     mutationFn: async (input: WorkoutSessionInput): Promise<WorkoutSaveResultDto> => {
@@ -158,11 +152,11 @@ export function useWorkout() {
       return { previousCurrent };
     },
 
-    onError: (err, _input, context) => {
+    onError: (_err, _input, context) => {
       if (context?.previousCurrent) {
         queryClient.setQueryData(queryKeys.fatigue.current, context.previousCurrent);
       }
-      pushWorkoutErrorToast(err instanceof Error ? err.message : 'ワークアウトの保存に失敗しました');
+      pushToast('error', 'トレーニング記録の保存に失敗しました。入力内容を確認して再試行してください。');
     },
 
     onSettled: () => {

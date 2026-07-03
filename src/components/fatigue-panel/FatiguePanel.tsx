@@ -29,19 +29,19 @@ function HistoryTabContent({ muscleId }: { muscleId: MuscleId }) {
       <div className="text-sm font-medium text-gray-600">
         {MUSCLE_LABELS[muscleId]} の疲労履歴
       </div>
-      <FatigueHistoryChart history={history} />
+      <FatigueHistoryChart history={history} muscleId={muscleId} />
     </div>
   );
 }
 
 export default function FatiguePanel({ selectedMuscle }: FatiguePanelProps) {
   const { activePanelTab, setActivePanelTab } = useUIStore();
-  const fatigueData = useFatigueWithDecay();
+  const { data: fatigueData } = useFatigueWithDecay();
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex h-full min-h-0 flex-col">
       {/* Tab bar */}
-      <div className="flex border-b border-gray-200">
+      <div className="flex flex-shrink-0 border-b border-gray-200">
         {TABS.map((tab) => (
           <button
             key={tab.id}
@@ -58,7 +58,7 @@ export default function FatiguePanel({ selectedMuscle }: FatiguePanelProps) {
       </div>
 
       {/* Tab content */}
-      <div className="flex-1 overflow-y-auto p-4">
+      <div className="min-h-0 flex-1 overflow-y-auto p-4">
         {activePanelTab === 'input' && (
           <>
             {selectedMuscle && fatigueData?.[selectedMuscle] ? (

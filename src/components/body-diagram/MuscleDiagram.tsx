@@ -23,7 +23,7 @@ export default function MuscleDiagram({
   return (
     <svg
       viewBox="0 0 200 420"
-      className="w-full max-w-[220px] select-none"
+      className="h-auto w-full max-w-[220px] select-none max-[767px]:max-w-[180px]"
       aria-label={`筋肉図（${view === 'front' ? '前面' : '背面'}）`}
     >
       {/* Body silhouette background */}

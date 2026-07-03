@@ -98,7 +98,7 @@ describe('predictWorkoutCurrent', () => {
 
 describe('useWorkout', () => {
   beforeEach(() => {
-    useUIStore.setState({ pushToast: undefined } as Partial<ReturnType<typeof useUIStore.getState>>);
+    useUIStore.setState({ toasts: [] });
     server.use(
       http.get('/api/fatigue/current', () =>
         HttpResponse.json({
@@ -228,8 +228,7 @@ describe('useWorkout', () => {
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
   });
 
-  it('保存失敗時に current キャッシュをロールバックして Toast を呼ぶ', async () => {
-    const toastSpy = vi.fn();
+  it('保存失敗時に current キャッシュをロールバックして Toast を追加する', async () => {
     server.use(
       http.post('/api/workout', () =>
         HttpResponse.json(
@@ -238,9 +237,6 @@ describe('useWorkout', () => {
         ),
       ),
     );
-    useUIStore.setState({
-      pushToast: toastSpy,
-    } as Partial<ReturnType<typeof useUIStore.getState>>);
 
     const previous = makeCurrentMap({
       chest: {
@@ -266,6 +262,11 @@ describe('useWorkout', () => {
     await waitFor(() => expect(result.current.isError).toBe(true));
 
     expect(queryClient.getQueryData<CurrentFatigueMap>(queryKeys.fatigue.current)).toEqual(previous);
-    expect(toastSpy).toHaveBeenCalledWith('error', 'Internal error');
+    expect(useUIStore.getState().toasts).toEqual([
+      expect.objectContaining({
+        type: 'error',
+        message: 'トレーニング記録の保存に失敗しました。入力内容を確認して再試行してください。',
+      }),
+    ]);
   });
 });
