@@ -119,16 +119,18 @@ test('ログインから主要フローを通せる', async ({ page }) => {
   await page.goto('/login');
   await page.getByRole('button', { name: 'Googleでログイン' }).click();
 
-  await expect(page.getByRole('button', { name: '胸部 0%' })).toBeVisible();
-  await page.getByRole('button', { name: '胸部 0%' }).click();
+  const chestLayer = (label: string) => page.locator(`svg [role="button"][aria-label="${label}"]`);
 
-  const chestBefore = page.getByRole('button', { name: '胸部 0%' });
+  await expect(chestLayer('胸部 0%')).toBeVisible();
+  await chestLayer('胸部 0%').click();
+
+  const chestBefore = chestLayer('胸部 0%');
   await expect(chestBefore).toHaveAttribute('fill', '#dddddd');
 
   await page.getByRole('slider', { name: /疲労度スライダー/ }).fill('40');
   await page.getByRole('button', { name: '確定' }).click();
 
-  const chestAfterManualSave = page.getByRole('button', { name: '胸部 40%' });
+  const chestAfterManualSave = chestLayer('胸部 40%');
   await expect(chestAfterManualSave).toBeVisible();
   await expect(chestAfterManualSave).toHaveAttribute('fill', '#ffd700');
 
@@ -137,7 +139,7 @@ test('ログインから主要フローを通せる', async ({ page }) => {
   await page.getByRole('button', { name: /腕立て伏せ/ }).click();
   await page.getByRole('button', { name: '保存して反映' }).click();
 
-  await expect(page.getByRole('button', { name: '胸部 64%' })).toBeVisible();
+  await expect(chestLayer('胸部 64%')).toBeVisible();
 
   await page.goto('/workout/history');
   await expect(page.getByRole('heading', { name: 'トレーニング履歴' })).toBeVisible();
