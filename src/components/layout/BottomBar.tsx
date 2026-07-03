@@ -7,7 +7,7 @@ import { getFatigueColor } from '@/lib/fatigue/colorMap';
 import type { MuscleGroup } from '@/types/domain';
 
 export default function BottomBar() {
-  const fatigueData = useFatigueWithDecay();
+  const { data: fatigueData } = useFatigueWithDecay();
   const { openResetModal, setSelectedMuscle, setActivePanelTab } = useUIStore();
 
   const getGroupValue = (group: MuscleGroup): number => {

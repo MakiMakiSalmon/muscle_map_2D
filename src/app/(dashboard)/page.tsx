@@ -4,10 +4,22 @@ import { useFatigueWithDecay } from '@/hooks/useFatigueWithDecay';
 import { useUIStore } from '@/stores/uiStore';
 import MuscleDiagram from '@/components/body-diagram/MuscleDiagram';
 import FatiguePanel from '@/components/fatigue-panel/FatiguePanel';
+import Button from '@/components/ui/Button';
+import Toast from '@/components/ui/Toast';
+import { useRouter } from 'next/navigation';
 
 export default function DashboardPage() {
+  const router = useRouter();
   const { selectedMuscle, setSelectedMuscle, bodyView, setBodyView } = useUIStore();
-  const fatigueData = useFatigueWithDecay();
+  const { data: fatigueData, isError, isUnauthorized, refetch } = useFatigueWithDecay();
+
+  const handleRetry = () => {
+    if (isUnauthorized) {
+      router.replace('/login');
+      return;
+    }
+    refetch();
+  };
 
   return (
     <div className="flex h-full overflow-hidden">
@@ -30,7 +42,16 @@ export default function DashboardPage() {
           ))}
         </div>
 
-        {fatigueData ? (
+        {isError ? (
+          <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center">
+            <p className="text-sm text-gray-600">
+              疲労データを取得できませんでした。
+            </p>
+            <Button size="sm" onClick={handleRetry}>
+              {isUnauthorized ? 'ログインへ移動' : '再試行'}
+            </Button>
+          </div>
+        ) : fatigueData ? (
           <MuscleDiagram
             fatigueData={fatigueData}
             selectedMuscle={selectedMuscle}
@@ -67,6 +88,7 @@ export default function DashboardPage() {
       <div className="flex-1 overflow-hidden">
         <FatiguePanel selectedMuscle={selectedMuscle} />
       </div>
+      <Toast />
     </div>
   );
 }

@@ -5,8 +5,19 @@ import { fetchCurrentFatigue } from '@/hooks/useFatigue';
 import { applyDecay, calcRecoveryHoursRemaining } from '@/lib/fatigue/decay';
 import type { CurrentFatigueEntry, CurrentFatigueMap, MuscleId } from '@/types/domain';
 
-export function useFatigueWithDecay(): CurrentFatigueMap | null {
-  const { data } = useQuery({
+interface FatigueWithDecayResult {
+  data: CurrentFatigueMap | null;
+  isError: boolean;
+  isUnauthorized: boolean;
+  refetch: () => void;
+}
+
+function isUnauthorizedError(error: Error | null): boolean {
+  return 'status' in (error ?? {}) && (error as { status?: number }).status === 401;
+}
+
+export function useFatigueWithDecay(): FatigueWithDecayResult {
+  const { data, error, isError, refetch } = useQuery({
     queryKey: queryKeys.fatigue.current,
     queryFn: fetchCurrentFatigue,
     staleTime: 5 * 60 * 1000,
@@ -18,7 +29,7 @@ export function useFatigueWithDecay(): CurrentFatigueMap | null {
     return () => clearInterval(id);
   }, []);
 
-  return useMemo(() => {
+  const decayedData = useMemo(() => {
     if (!data) return null;
     const now = new Date();
     const result = {} as CurrentFatigueMap;
@@ -38,4 +49,13 @@ export function useFatigueWithDecay(): CurrentFatigueMap | null {
     }
     return result;
   }, [data, tick]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  return {
+    data: decayedData,
+    isError,
+    isUnauthorized: isUnauthorizedError(error),
+    refetch: () => {
+      void refetch();
+    },
+  };
 }

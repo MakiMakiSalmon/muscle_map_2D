@@ -1,6 +1,14 @@
 import { create } from 'zustand';
 import type { MuscleId } from '@/types/domain';
 
+export interface ToastItem {
+  id: number;
+  type: 'error' | 'success';
+  message: string;
+}
+
+let nextToastId = 1;
+
 interface UIStore {
   bodyView: 'front' | 'back';
   setBodyView: (view: 'front' | 'back') => void;
@@ -18,6 +26,10 @@ interface UIStore {
   isResetModalOpen: boolean;
   openResetModal: () => void;
   closeResetModal: () => void;
+
+  toasts: ToastItem[];
+  pushToast: (type: ToastItem['type'], message: string) => void;
+  dismissToast: (id: number) => void;
 }
 
 export const useUIStore = create<UIStore>((set) => ({
@@ -37,4 +49,21 @@ export const useUIStore = create<UIStore>((set) => ({
   isResetModalOpen: false,
   openResetModal: () => set({ isResetModalOpen: true }),
   closeResetModal: () => set({ isResetModalOpen: false }),
+
+  toasts: [],
+  pushToast: (type, message) => {
+    const id = nextToastId++;
+    set((state) => ({
+      toasts: [{ id, type, message }, ...state.toasts].slice(0, 3),
+    }));
+    globalThis.setTimeout(() => {
+      set((state) => ({
+        toasts: state.toasts.filter((toast) => toast.id !== id),
+      }));
+    }, 4_000);
+  },
+  dismissToast: (id) =>
+    set((state) => ({
+      toasts: state.toasts.filter((toast) => toast.id !== id),
+    })),
 }));

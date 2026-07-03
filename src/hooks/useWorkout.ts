@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { clientAuth } from '@/lib/firebase/client';
 import { queryKeys } from '@/lib/queryKeys';
+import { useUIStore } from '@/stores/uiStore';
 import type { WorkoutHistoryResponse, WorkoutSaveResultDto } from '@/types/api';
 
 interface WorkoutSessionInput {
@@ -41,6 +42,7 @@ export function useWorkoutHistory(limit = 10, cursor?: string) {
 
 export function useWorkout() {
   const queryClient = useQueryClient();
+  const pushToast = useUIStore((state) => state.pushToast);
 
   return useMutation({
     mutationFn: async (input: WorkoutSessionInput): Promise<WorkoutSaveResultDto> => {
@@ -58,6 +60,10 @@ export function useWorkout() {
         throw new Error((err as { error?: string }).error ?? `HTTP ${res.status}`);
       }
       return res.json() as Promise<WorkoutSaveResultDto>;
+    },
+
+    onError: () => {
+      pushToast('error', 'トレーニング記録の保存に失敗しました。入力内容を確認して再試行してください。');
     },
 
     onSettled: () => {
