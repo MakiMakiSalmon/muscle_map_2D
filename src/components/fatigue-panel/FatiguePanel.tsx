@@ -36,7 +36,7 @@ function HistoryTabContent({ muscleId }: { muscleId: MuscleId }) {
 
 export default function FatiguePanel({ selectedMuscle }: FatiguePanelProps) {
   const { activePanelTab, setActivePanelTab } = useUIStore();
-  const fatigueData = useFatigueWithDecay();
+  const { data: fatigueData } = useFatigueWithDecay();
 
   return (
     <div className="flex flex-col h-full">

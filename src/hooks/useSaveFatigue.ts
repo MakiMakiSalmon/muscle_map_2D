@@ -4,12 +4,14 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { clientAuth } from '@/lib/firebase/client';
 import { queryKeys } from '@/lib/queryKeys';
+import { useUIStore } from '@/stores/uiStore';
 import { MUSCLE_RECOVERY_HOURS } from '@/types/domain';
 import type { CurrentFatigueMap, MuscleId } from '@/types/domain';
 import type { SaveFatigueResponse } from '@/types/api';
 
 export function useSaveFatigue() {
   const queryClient = useQueryClient();
+  const pushToast = useUIStore((state) => state.pushToast);
 
   return useMutation({
     mutationFn: async ({ muscleId, value }: { muscleId: MuscleId; value: number }) => {
@@ -54,6 +56,7 @@ export function useSaveFatigue() {
     },
 
     onError: (_err, _vars, context) => {
+      pushToast('error', '疲労値の保存に失敗しました。変更前の値に戻しました。');
       if (context?.previousEntry) {
         const current = queryClient.getQueryData<CurrentFatigueMap>(queryKeys.fatigue.current);
         if (current) {
