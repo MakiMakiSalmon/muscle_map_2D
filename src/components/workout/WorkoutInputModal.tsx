@@ -32,6 +32,12 @@ export default function WorkoutInputModal() {
     closeWorkoutModal();
   };
 
+  const closeAfterSubmit = () => {
+    setRows([]);
+    setError('');
+    closeWorkoutModal();
+  };
+
   const handleAddExercise = (exercise: Exercise) => {
     setRows((prev) => [
       ...prev,
@@ -56,20 +62,11 @@ export default function WorkoutInputModal() {
       return;
     }
     setError('');
-    saveWorkout(
-      {
-        performedAt: fromZonedTime(performedAt, TZ).toISOString(),
-        exercises: rows.map((r) => r.input),
-      },
-      {
-        onSuccess: () => {
-          handleClose();
-        },
-        onError: (err) => {
-          setError(err.message ?? '保存に失敗しました');
-        },
-      },
-    );
+    saveWorkout({
+      performedAt: fromZonedTime(performedAt, TZ).toISOString(),
+      exercises: rows.map((r) => r.input),
+    });
+    closeAfterSubmit();
   };
 
   return (
