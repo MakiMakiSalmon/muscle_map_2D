@@ -38,7 +38,7 @@ function makeSession(
     id,
     data: () => ({
       performedAt: { toDate: () => performedAt },
-      exercises: [{ exerciseId: 'bench_press', sets: 3, reps: 10, weightKg: 60 }],
+      exercises: [{ exerciseId: 'bench_press', sets: 3, reps: 10, weightKg: 60, rpe: null }],
       ...(fatigueImpacts !== undefined ? { fatigueImpacts } : {}),
     }),
   };

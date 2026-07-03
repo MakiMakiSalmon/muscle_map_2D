@@ -14,7 +14,7 @@ export default function FatiguePreview({ items }: FatiguePreviewProps) {
 
   const impacts = mergeImpacts(
     items.map(({ exercise, input }) =>
-      computeFatigueImpact(exercise, input.sets, input.reps),
+      computeFatigueImpact(exercise, input.sets, input.reps, input.rpe),
     ),
   );
 
