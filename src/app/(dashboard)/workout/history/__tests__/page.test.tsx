@@ -3,9 +3,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import HistoryPage from '../page';
 import type { Exercise, WorkoutSession } from '@/types/domain';
 
-const { mockUseWorkoutHistory, mockUseExercises } = vi.hoisted(() => ({
+const { mockUseWorkoutHistory, mockUseExercises, mockUseDeleteWorkout } = vi.hoisted(() => ({
   mockUseWorkoutHistory: vi.fn(),
   mockUseExercises: vi.fn(),
+  mockUseDeleteWorkout: vi.fn(),
 }));
 
 vi.mock('@/hooks/useWorkout', () => ({
@@ -14,6 +15,20 @@ vi.mock('@/hooks/useWorkout', () => ({
 
 vi.mock('@/hooks/useExercises', () => ({
   useAllExercises: () => mockUseExercises(),
+}));
+
+vi.mock('@/hooks/useDeleteWorkout', () => ({
+  useDeleteWorkout: () => mockUseDeleteWorkout(),
+  DeleteWorkoutError: class DeleteWorkoutError extends Error {
+    status: number;
+    code?: string;
+
+    constructor(message: string, status: number, code?: string) {
+      super(message);
+      this.status = status;
+      this.code = code;
+    }
+  },
 }));
 
 const benchPress: Exercise = {
@@ -37,6 +52,10 @@ describe('HistoryPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockUseExercises.mockReturnValue({ data: [benchPress] });
+    mockUseDeleteWorkout.mockReturnValue({
+      isPending: false,
+      mutate: vi.fn(),
+    });
   });
 
   it('fatigueImpacts がある場合は保存済みの影響値を表示する', () => {
