@@ -15,7 +15,7 @@ interface FatigueInputTabProps {
 
 export default function FatigueInputTab({ muscleId, entry }: FatigueInputTabProps) {
   const { mutate: save, isPending } = useSaveFatigue();
-  const { data: history = [] } = useFatigueHistory(muscleId, 7);
+  const { data: history = [] } = useFatigueHistory(muscleId, 20);
   const [saveVersion, setSaveVersion] = useState(0);
 
   const formatRecovery = (hours: number): string => {
@@ -55,7 +55,7 @@ export default function FatigueInputTab({ muscleId, entry }: FatigueInputTabProp
       {history.length > 0 && (
         <div className="border-t border-gray-100 pt-4 space-y-2">
           <div className="text-sm font-medium text-gray-600">疲労履歴</div>
-          <FatigueHistoryChart history={history} />
+          <FatigueHistoryChart history={history} muscleId={muscleId} />
         </div>
       )}
     </div>
