@@ -1,12 +1,13 @@
 import { useQuery } from '@tanstack/react-query';
 import { clientAuth } from '@/lib/firebase/client';
+import { getE2EAuthToken } from '@/lib/auth/e2eAuth';
 import { queryKeys } from '@/lib/queryKeys';
 import type { ExerciseDto, ExercisesResponse } from '@/types/api';
 
 const EXERCISES_STALE_TIME = 24 * 60 * 60 * 1000;
 
 async function fetchExercises(q?: string): Promise<ExerciseDto[]> {
-  const token = await clientAuth.currentUser?.getIdToken();
+  const token = getE2EAuthToken() ?? await clientAuth.currentUser?.getIdToken();
   if (!token) throw new Error('Not authenticated');
 
   const params = new URLSearchParams();

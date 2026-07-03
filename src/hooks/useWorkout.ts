@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { clientAuth } from '@/lib/firebase/client';
+import { getE2EAuthToken } from '@/lib/auth/e2eAuth';
 import { applyDecay, calcRecoveryHoursRemaining } from '@/lib/fatigue/decay';
 import { queryKeys } from '@/lib/queryKeys';
 import { useUIStore } from '@/stores/uiStore';
@@ -22,6 +23,8 @@ interface WorkoutMutationContext {
 }
 
 async function getToken(): Promise<string> {
+  const e2eToken = getE2EAuthToken();
+  if (e2eToken) return e2eToken;
   const token = await clientAuth.currentUser?.getIdToken();
   if (!token) throw new Error('Not authenticated');
   return token;

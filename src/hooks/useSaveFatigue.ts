@@ -3,6 +3,7 @@
 // 理由: FatigueSlider（Step 5）が依存するため Step 5 より前に必要。
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { clientAuth } from '@/lib/firebase/client';
+import { getE2EAuthToken } from '@/lib/auth/e2eAuth';
 import { queryKeys } from '@/lib/queryKeys';
 import { useUIStore } from '@/stores/uiStore';
 import { MUSCLE_RECOVERY_HOURS } from '@/types/domain';
@@ -15,7 +16,7 @@ export function useSaveFatigue() {
 
   return useMutation({
     mutationFn: async ({ muscleId, value }: { muscleId: MuscleId; value: number }) => {
-      const token = await clientAuth.currentUser?.getIdToken();
+      const token = getE2EAuthToken() ?? await clientAuth.currentUser?.getIdToken();
       if (!token) throw new Error('Not authenticated');
       const res = await fetch('/api/fatigue', {
         method: 'POST',
