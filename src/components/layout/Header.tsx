@@ -16,24 +16,24 @@ export default function Header() {
   };
 
   return (
-    <header className="flex items-center justify-between px-6 py-3 bg-white border-b border-gray-200 shadow-sm">
-      <h1 className="text-lg font-bold text-gray-900">筋肉疲労マップ 2D</h1>
+    <header className="flex items-center justify-between gap-3 border-b border-gray-200 bg-white px-4 py-3 shadow-sm md:px-6">
+      <h1 className="truncate text-base font-bold text-gray-900 md:text-lg">筋肉疲労マップ 2D</h1>
 
-      <div className="flex items-center gap-3">
+      <div className="flex flex-shrink-0 items-center gap-2 md:gap-3">
         {user?.photoURL && (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={user.photoURL}
             alt={user.displayName ?? 'ユーザー'}
-            className="w-8 h-8 rounded-full"
+            className="h-8 w-8 rounded-full"
           />
         )}
-        <span className="text-sm text-gray-600 hidden sm:inline">
+        <span className="hidden text-sm text-gray-600 sm:inline">
           {user?.displayName ?? user?.email}
         </span>
         <button
           onClick={handleSignOut}
-          className="text-sm text-gray-500 hover:text-gray-800 transition-colors"
+          className="whitespace-nowrap text-sm text-gray-500 transition-colors hover:text-gray-800"
         >
           ログアウト
         </button>

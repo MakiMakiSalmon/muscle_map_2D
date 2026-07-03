@@ -39,9 +39,9 @@ export default function FatiguePanel({ selectedMuscle }: FatiguePanelProps) {
   const fatigueData = useFatigueWithDecay();
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex h-full min-h-0 flex-col">
       {/* Tab bar */}
-      <div className="flex border-b border-gray-200">
+      <div className="flex flex-shrink-0 border-b border-gray-200">
         {TABS.map((tab) => (
           <button
             key={tab.id}
@@ -58,7 +58,7 @@ export default function FatiguePanel({ selectedMuscle }: FatiguePanelProps) {
       </div>
 
       {/* Tab content */}
-      <div className="flex-1 overflow-y-auto p-4">
+      <div className="min-h-0 flex-1 overflow-y-auto p-4">
         {activePanelTab === 'input' && (
           <>
             {selectedMuscle && fatigueData?.[selectedMuscle] ? (
