@@ -6,7 +6,8 @@ import { z } from 'zod';
 import { Timestamp } from 'firebase-admin/firestore';
 import { withAuth } from '@/lib/auth/verifyUser';
 import { adminDb } from '@/lib/firebase/admin';
-import { MUSCLE_IDS } from '@/types/domain';
+import { MUSCLE_IDS, type FatigueSnapshotInput } from '@/types/domain';
+import { buildCurrentMerge, fatigueCurrentDocRef, readFatigueCurrent } from '@/lib/fatigue/currentDoc';
 
 const fatigueSchema = z.object({
   muscleId: z.enum(MUSCLE_IDS),
@@ -32,9 +33,19 @@ export const POST = withAuth(async (req: NextRequest, { uid }) => {
   const { muscleId, value } = parsed.data;
   const now = new Date();
   const db = adminDb();
+  const existingCurrent = await readFatigueCurrent(uid, db);
   const ref = db.collection(`users/${uid}/fatigueSnapshots`).doc();
+  const batch = db.batch();
+  const snapshot: FatigueSnapshotInput = {
+    muscleId,
+    value,
+    recordedAt: now,
+    createdAt: now,
+    source: 'manual',
+    workoutSessionId: null,
+  };
 
-  await ref.set({
+  batch.set(ref, {
     muscleId,
     value,
     recordedAt: Timestamp.fromDate(now),
@@ -42,6 +53,11 @@ export const POST = withAuth(async (req: NextRequest, { uid }) => {
     source: 'manual',
     workoutSessionId: null,
   });
+  const currentMerge = buildCurrentMerge(existingCurrent, [snapshot]);
+  if (currentMerge) {
+    batch.set(fatigueCurrentDocRef(uid, db), currentMerge, { merge: true });
+  }
+  await batch.commit();
 
   return NextResponse.json(
     {
