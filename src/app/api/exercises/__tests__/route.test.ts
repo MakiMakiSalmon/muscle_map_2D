@@ -1,21 +1,28 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { NextRequest } from 'next/server';
 
-const { mockGet, mockVerifyIdToken } = vi.hoisted(() => ({
+const { mockCollection, mockGet, mockLimit, mockVerifyIdToken, mockWhere } = vi.hoisted(() => ({
+  mockCollection: vi.fn(),
   mockGet: vi.fn(),
+  mockLimit: vi.fn(),
   mockVerifyIdToken: vi.fn(),
+  mockWhere: vi.fn(),
 }));
 
 vi.mock('@/lib/firebase/admin', () => {
   const queryChain = {
-    where: vi.fn().mockReturnThis(),
-    limit: vi.fn().mockReturnThis(),
+    where: mockWhere,
+    limit: mockLimit,
     get: mockGet,
   };
+  mockCollection.mockReturnValue(queryChain);
+  mockWhere.mockReturnValue(queryChain);
+  mockLimit.mockReturnValue(queryChain);
+
   return {
     adminAuth: vi.fn().mockReturnValue({ verifyIdToken: mockVerifyIdToken }),
     adminDb: vi.fn().mockReturnValue({
-      collection: vi.fn().mockReturnValue(queryChain),
+      collection: mockCollection,
     }),
   };
 });
@@ -63,6 +70,8 @@ describe('GET /api/exercises', () => {
     expect(body.exercises[0].id).toBe('bench_press');
     expect(body.exercises[0].nameJa).toBe('ベンチプレス');
     expect(body.exercises[0].primaryMuscles).toEqual(['chest', 'triceps']);
+    expect(mockWhere).not.toHaveBeenCalled();
+    expect(mockLimit).toHaveBeenCalledWith(200);
   });
 
   it('q あり → 前方一致検索で結果を返す', async () => {
@@ -72,6 +81,18 @@ describe('GET /api/exercises', () => {
     const body = await res.json();
     expect(body.exercises).toHaveLength(1);
     expect(body.exercises[0].nameJa).toBe('ベンチプレス');
+    expect(mockWhere).toHaveBeenNthCalledWith(1, 'nameJa', '>=', 'ベンチ');
+    expect(mockWhere).toHaveBeenNthCalledWith(2, 'nameJa', '<=', 'ベンチ');
+    expect(mockLimit).toHaveBeenCalledWith(20);
+  });
+
+  it('q あり・limit 指定 → 最大50件に丸めて前方一致検索する', async () => {
+    mockGet.mockResolvedValueOnce({ docs: [BENCH_PRESS_DOC] });
+    const res = await GET(makeRequest({ q: 'ベンチ', limit: '80' }));
+    expect(res.status).toBe(200);
+    expect(mockWhere).toHaveBeenNthCalledWith(1, 'nameJa', '>=', 'ベンチ');
+    expect(mockWhere).toHaveBeenNthCalledWith(2, 'nameJa', '<=', 'ベンチ');
+    expect(mockLimit).toHaveBeenCalledWith(50);
   });
 
   it('q あり・ヒットなし → exercises が空配列', async () => {

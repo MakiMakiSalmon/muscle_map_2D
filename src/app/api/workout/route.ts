@@ -9,6 +9,7 @@ import { adminDb } from '@/lib/firebase/admin';
 import { type Exercise, type MuscleGroup } from '@/types/domain';
 import { computeFatigueImpact, mergeImpacts } from '@/lib/workout/fatigueImpact';
 import { applyWorkoutToFatigue } from '@/lib/workout/applyWorkoutToFatigue';
+import { buildCurrentMerge, fatigueCurrentDocRef } from '@/lib/fatigue/currentDoc';
 
 const workoutSchema = z.object({
   performedAt: z.string().refine((val) => {
@@ -24,6 +25,7 @@ const workoutSchema = z.object({
         sets: z.number().int().min(1).max(99),
         reps: z.number().int().min(1).max(999).nullable(),
         weightKg: z.number().min(0).max(999).nullable(),
+        rpe: z.number().int().min(1).max(10).nullable().optional().transform((value) => value ?? null),
       })
     )
     .min(1)
@@ -78,28 +80,32 @@ export const POST = withAuth(async (req: NextRequest, { uid }) => {
   const impacts = mergeImpacts(
     exercises.map((ex) => {
       const exercise = exerciseMap.get(ex.exerciseId)!;
-      return computeFatigueImpact(exercise, ex.sets, ex.reps);
+      return computeFatigueImpact(exercise, ex.sets, ex.reps, ex.rpe);
     })
   );
 
   const now = new Date();
   const sessionRef = db.collection(`users/${uid}/workoutSessions`).doc();
   const sessionId = sessionRef.id;
+  const performedAtDate = new Date(performedAt);
 
-  // 現在の減衰済み値 + delta でスナップショットを生成（§4-3）
-  const fatigueSnapshots = await applyWorkoutToFatigue(uid, impacts, sessionId, db, now);
+  // performedAt 時点の絶対値としてスナップショットを生成（docs/v3/design.md D4-1）
+  const fatigueResult = await applyWorkoutToFatigue(uid, impacts, sessionId, db, performedAtDate, now);
+  const { current, snapshots: fatigueSnapshots } = fatigueResult;
 
   // セッション + スナップショットを batch write で原子的に保存（§12-1）
   const batch = db.batch();
 
   batch.set(sessionRef, {
-    performedAt: Timestamp.fromDate(new Date(performedAt)),
+    performedAt: Timestamp.fromDate(performedAtDate),
     exercises: exercises.map((ex) => ({
       exerciseId: ex.exerciseId,
       sets: ex.sets,
       reps: ex.reps,
       weightKg: ex.weightKg,
+      rpe: ex.rpe,
     })),
+    fatigueImpacts: impacts,
   });
 
   for (const snapshot of fatigueSnapshots) {
@@ -108,9 +114,14 @@ export const POST = withAuth(async (req: NextRequest, { uid }) => {
       muscleId: snapshot.muscleId,
       value: snapshot.value,
       recordedAt: Timestamp.fromDate(snapshot.recordedAt),
+      createdAt: Timestamp.fromDate(snapshot.createdAt),
       source: snapshot.source,
       workoutSessionId: snapshot.workoutSessionId,
     });
+  }
+  const currentMerge = buildCurrentMerge(current, fatigueSnapshots);
+  if (currentMerge) {
+    batch.set(fatigueCurrentDocRef(uid, db), currentMerge, { merge: true });
   }
 
   await batch.commit();
@@ -119,12 +130,13 @@ export const POST = withAuth(async (req: NextRequest, { uid }) => {
     {
       session: {
         id: sessionId,
-        performedAt: new Date(performedAt).toISOString(),
+        performedAt: performedAtDate.toISOString(),
         exercises: exercises.map((ex) => ({
           exerciseId: ex.exerciseId,
           sets: ex.sets,
           reps: ex.reps,
           weightKg: ex.weightKg,
+          rpe: ex.rpe,
         })),
       },
       fatigueImpacts: impacts,

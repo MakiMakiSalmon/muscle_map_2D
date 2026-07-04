@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { NextRequest } from 'next/server';
+import type { MuscleId } from '@/types/domain';
 
 const { mockGet, mockDocGet, mockVerifyIdToken } = vi.hoisted(() => ({
   mockGet: vi.fn(),
@@ -28,12 +29,17 @@ vi.mock('@/lib/firebase/admin', () => {
 
 import { GET } from '../route';
 
-function makeSession(id: string, performedAt: Date) {
+function makeSession(
+  id: string,
+  performedAt: Date,
+  fatigueImpacts?: Partial<Record<MuscleId, number>>,
+) {
   return {
     id,
     data: () => ({
       performedAt: { toDate: () => performedAt },
-      exercises: [{ exerciseId: 'bench_press', sets: 3, reps: 10, weightKg: 60 }],
+      exercises: [{ exerciseId: 'bench_press', sets: 3, reps: 10, weightKg: 60, rpe: null }],
+      ...(fatigueImpacts !== undefined ? { fatigueImpacts } : {}),
     }),
   };
 }
@@ -79,7 +85,20 @@ describe('GET /api/workout/history', () => {
     expect(body.sessions[0].id).toBe('session1');
     expect(body.sessions[0].performedAt).toBe(now.toISOString());
     expect(body.sessions[0].exercises).toHaveLength(1);
+    expect(body.sessions[0]).not.toHaveProperty('fatigueImpacts');
     expect(body.nextCursor).toBeNull();
+  });
+
+  it('fatigueImpacts が保存済みのセッションではレスポンスに含める', async () => {
+    const now = new Date('2026-04-01T10:00:00Z');
+    mockGet.mockResolvedValueOnce({
+      docs: [makeSession('session1', now, { chest: 12, triceps_left: 8 })],
+    });
+
+    const res = await GET(makeRequest());
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.sessions[0].fatigueImpacts).toEqual({ chest: 12, triceps_left: 8 });
   });
 
   it('limit+1 件取得されたとき → nextCursor が返る', async () => {

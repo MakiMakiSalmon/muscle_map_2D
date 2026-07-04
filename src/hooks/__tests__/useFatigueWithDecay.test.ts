@@ -44,16 +44,17 @@ describe('useFatigueWithDecay', () => {
     const { result } = renderHook(() => useFatigueWithDecay(), {
       wrapper: createWrapper(),
     });
-    expect(result.current).toBeNull();
+    expect(result.current.data).toBeNull();
+    expect(result.current.isError).toBe(false);
   });
 
   it('全筋肉未記録 → savedValue=0 の場合 currentValue=0 を返す', async () => {
     const { result } = renderHook(() => useFatigueWithDecay(), {
       wrapper: createWrapper(),
     });
-    await waitFor(() => expect(result.current).not.toBeNull());
+    await waitFor(() => expect(result.current.data).not.toBeNull());
     for (const id of MUSCLE_IDS) {
-      expect(result.current![id].currentValue).toBe(0);
+      expect(result.current.data![id].currentValue).toBe(0);
     }
   });
 
@@ -67,10 +68,10 @@ describe('useFatigueWithDecay', () => {
     const { result } = renderHook(() => useFatigueWithDecay(), {
       wrapper: createWrapper(),
     });
-    await waitFor(() => expect(result.current).not.toBeNull());
+    await waitFor(() => expect(result.current.data).not.toBeNull());
     // 保存直後なので減衰はほぼゼロ（Math.round のずれで最大 1 の誤差を許容）
-    expect(result.current!.chest.currentValue).toBeGreaterThanOrEqual(79);
-    expect(result.current!.chest.currentValue).toBeLessThanOrEqual(80);
+    expect(result.current.data!.chest.currentValue).toBeGreaterThanOrEqual(79);
+    expect(result.current.data!.chest.currentValue).toBeLessThanOrEqual(80);
   });
 
   it('24時間前のスナップショット → currentValue が減衰した値になる（savedValue は保持）', async () => {
@@ -85,10 +86,48 @@ describe('useFatigueWithDecay', () => {
       wrapper: createWrapper(),
     });
 
-    await waitFor(() => expect(result.current).not.toBeNull());
+    await waitFor(() => expect(result.current.data).not.toBeNull());
 
-    expect(result.current!.chest.savedValue).toBe(48);
-    expect(result.current!.chest.currentValue).toBe(24);
-    expect(result.current!.chest.recoveryHoursRemaining).toBeGreaterThan(0);
+    expect(result.current.data!.chest.savedValue).toBe(48);
+    expect(result.current.data!.chest.currentValue).toBe(24);
+    expect(result.current.data!.chest.recoveryHoursRemaining).toBeGreaterThan(0);
+  });
+
+  it('current 取得が 500 の場合は isError=true と refetch を返す', async () => {
+    server.use(
+      http.get('/api/fatigue/current', () =>
+        HttpResponse.json(
+          { error: 'Internal error', code: 'INTERNAL_ERROR' },
+          { status: 500 },
+        ),
+      ),
+    );
+
+    const { result } = renderHook(() => useFatigueWithDecay(), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(result.current.data).toBeNull();
+    expect(result.current.isUnauthorized).toBe(false);
+    expect(result.current.refetch).toEqual(expect.any(Function));
+  });
+
+  it('current 取得が 401 の場合は isUnauthorized=true を返す', async () => {
+    server.use(
+      http.get('/api/fatigue/current', () =>
+        HttpResponse.json(
+          { error: 'Unauthorized', code: 'UNAUTHORIZED' },
+          { status: 401 },
+        ),
+      ),
+    );
+
+    const { result } = renderHook(() => useFatigueWithDecay(), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(result.current.isUnauthorized).toBe(true);
   });
 });

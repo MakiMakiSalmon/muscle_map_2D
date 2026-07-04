@@ -5,6 +5,7 @@ import { createElement } from 'react';
 import { http, HttpResponse } from 'msw';
 import { server } from '@/test/mocks/server';
 import { useSaveFatigue } from '../useSaveFatigue';
+import { useUIStore } from '@/stores/uiStore';
 import type { CurrentFatigueMap } from '@/types/domain';
 import { MUSCLE_IDS } from '@/types/domain';
 
@@ -21,6 +22,7 @@ function makeSnapshot(muscleId: string, value: number) {
     muscleId,
     value,
     recordedAt: new Date().toISOString(),
+    createdAt: new Date().toISOString(),
     source: 'manual',
     workoutSessionId: null,
   };
@@ -53,6 +55,7 @@ function createWrapper() {
 
 describe('useSaveFatigue', () => {
   beforeEach(() => {
+    useUIStore.setState({ toasts: [] });
     // onSettled の invalidateQueries が再フェッチを起こすので GET ハンドラーを用意
     server.use(
       http.get('/api/fatigue/current', () =>
@@ -150,5 +153,11 @@ describe('useSaveFatigue', () => {
     // onError のロールバックにより元の値 30 に戻っているはず
     const cached = queryClient.getQueryData<CurrentFatigueMap>(['fatigue', 'current']);
     expect(cached?.chest.savedValue).toBe(30);
+    expect(useUIStore.getState().toasts).toEqual([
+      expect.objectContaining({
+        type: 'error',
+        message: '疲労値の保存に失敗しました。変更前の値に戻しました。',
+      }),
+    ]);
   });
 });

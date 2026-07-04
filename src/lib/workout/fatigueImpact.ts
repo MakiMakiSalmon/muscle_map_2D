@@ -4,13 +4,15 @@ export function computeFatigueImpact(
   exercise: Exercise,
   sets: number,
   reps: number | null,
+  rpe: number | null = null,
 ): Partial<Record<MuscleId, number>> {
   const effectiveReps = reps ?? 10;
   const volume = sets * effectiveReps;
   const baseVolume = 30;
+  const intensityFactor = rpe == null ? 1.0 : 0.6 + rpe * 0.06;
 
-  const primaryDelta   = Math.min(80, Math.round(40 * volume / baseVolume));
-  const secondaryDelta = Math.min(40, Math.round(20 * volume / baseVolume));
+  const primaryDelta = Math.min(80, Math.round(40 * (volume / baseVolume) * intensityFactor));
+  const secondaryDelta = Math.min(40, Math.round(20 * (volume / baseVolume) * intensityFactor));
 
   const impacts: Partial<Record<MuscleId, number>> = {};
   for (const group of exercise.primaryMuscles) {

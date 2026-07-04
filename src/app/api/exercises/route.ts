@@ -11,9 +11,10 @@ const FIRESTORE_PREFIX_SUFFIX = '';
 
 export const GET = withAuth(async (req: NextRequest) => {
   const { searchParams } = new URL(req.url);
-  const q = searchParams.get('q') ?? '';
+  const q = searchParams.get('q')?.trim() ?? '';
   const limitParam = searchParams.get('limit');
-  const limit = Math.min(50, Math.max(1, parseInt(limitParam ?? '20', 10) || 20));
+  const searchLimit = Math.min(50, Math.max(1, parseInt(limitParam ?? '20', 10) || 20));
+  const allLimit = 200;
 
   const db = adminDb();
   const baseQuery = q
@@ -21,8 +22,8 @@ export const GET = withAuth(async (req: NextRequest) => {
         .collection('exercises')
         .where('nameJa', '>=', q)
         .where('nameJa', '<=', q + FIRESTORE_PREFIX_SUFFIX)
-        .limit(limit)
-    : db.collection('exercises').limit(limit);
+        .limit(searchLimit)
+    : db.collection('exercises').limit(allLimit);
 
   const snap = await baseQuery.get();
 

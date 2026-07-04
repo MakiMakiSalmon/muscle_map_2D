@@ -4,7 +4,7 @@ export const preferredRegion = 'hnd1';
 import { NextRequest, NextResponse } from 'next/server';
 import { withAuth } from '@/lib/auth/verifyUser';
 import { adminDb } from '@/lib/firebase/admin';
-import type { WorkoutExerciseInput, WorkoutSession } from '@/types/domain';
+import type { MuscleId, WorkoutExerciseInput, WorkoutSession } from '@/types/domain';
 
 export const GET = withAuth(async (req: NextRequest, { uid }) => {
   const { searchParams } = new URL(req.url);
@@ -36,10 +36,12 @@ export const GET = withAuth(async (req: NextRequest, { uid }) => {
 
   const sessions: WorkoutSession[] = resultDocs.map((doc) => {
     const data = doc.data();
+    const fatigueImpacts = data.fatigueImpacts as Partial<Record<MuscleId, number>> | undefined;
     return {
       id: doc.id,
       performedAt: data.performedAt.toDate().toISOString(),
       exercises: data.exercises as WorkoutExerciseInput[],
+      ...(fatigueImpacts !== undefined ? { fatigueImpacts } : {}),
     };
   });
 

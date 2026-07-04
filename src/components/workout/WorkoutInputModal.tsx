@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { fromZonedTime } from 'date-fns-tz';
 import Modal from '@/components/ui/Modal';
 import Button from '@/components/ui/Button';
 import ExerciseSearch from './ExerciseSearch';
@@ -8,6 +9,7 @@ import ExerciseRow from './ExerciseRow';
 import FatiguePreview from './FatiguePreview';
 import { useUIStore } from '@/stores/uiStore';
 import { useWorkout } from '@/hooks/useWorkout';
+import { TZ, toDatetimeLocalValue } from '@/lib/date/format';
 import type { Exercise, WorkoutExerciseInput } from '@/types/domain';
 
 interface RowItem {
@@ -20,15 +22,17 @@ export default function WorkoutInputModal() {
   const { mutate: saveWorkout, isPending } = useWorkout();
 
   const [rows, setRows] = useState<RowItem[]>([]);
-  const [performedAt, setPerformedAt] = useState(() => {
-    const now = new Date();
-    now.setSeconds(0, 0);
-    return now.toISOString().slice(0, 16);
-  });
+  const [performedAt, setPerformedAt] = useState(() => toDatetimeLocalValue(new Date()));
   const [error, setError] = useState('');
 
   const handleClose = () => {
     if (isPending) return;
+    setRows([]);
+    setError('');
+    closeWorkoutModal();
+  };
+
+  const closeAfterSubmit = () => {
     setRows([]);
     setError('');
     closeWorkoutModal();
@@ -39,7 +43,7 @@ export default function WorkoutInputModal() {
       ...prev,
       {
         exercise,
-        input: { exerciseId: exercise.id, sets: 3, reps: 10, weightKg: null },
+        input: { exerciseId: exercise.id, sets: 3, reps: 10, weightKg: null, rpe: null },
       },
     ]);
   };
@@ -58,20 +62,11 @@ export default function WorkoutInputModal() {
       return;
     }
     setError('');
-    saveWorkout(
-      {
-        performedAt: new Date(performedAt).toISOString(),
-        exercises: rows.map((r) => r.input),
-      },
-      {
-        onSuccess: () => {
-          handleClose();
-        },
-        onError: (err) => {
-          setError(err.message ?? '保存に失敗しました');
-        },
-      },
-    );
+    saveWorkout({
+      performedAt: fromZonedTime(performedAt, TZ).toISOString(),
+      exercises: rows.map((r) => r.input),
+    });
+    closeAfterSubmit();
   };
 
   return (

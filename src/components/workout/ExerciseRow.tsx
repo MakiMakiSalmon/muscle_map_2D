@@ -64,6 +64,24 @@ export default function ExerciseRow({ exercise, input, onChange, onRemove }: Exe
           '重量(kg)',
           '60',
         )}
+        <label className="flex flex-col gap-0.5 flex-1">
+          <span className="text-xs text-gray-500">RPE</span>
+          <select
+            value={input.rpe ?? ''}
+            onChange={(e) => {
+              const rpe = e.target.value === '' ? null : Number(e.target.value);
+              onChange({ ...input, rpe });
+            }}
+            className="w-full border border-gray-300 rounded px-2 py-1 text-sm text-center focus:outline-none focus:ring-1 focus:ring-blue-400"
+          >
+            <option value="">未入力</option>
+            {Array.from({ length: 10 }, (_, i) => i + 1).map((value) => (
+              <option key={value} value={value}>
+                {value}
+              </option>
+            ))}
+          </select>
+        </label>
       </div>
 
       <div className="text-xs text-gray-400">

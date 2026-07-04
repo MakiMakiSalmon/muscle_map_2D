@@ -3,16 +3,20 @@
 // 理由: FatigueSlider（Step 5）が依存するため Step 5 より前に必要。
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { clientAuth } from '@/lib/firebase/client';
+import { getE2EAuthToken } from '@/lib/auth/e2eAuth';
 import { queryKeys } from '@/lib/queryKeys';
+import { useUIStore } from '@/stores/uiStore';
 import { MUSCLE_RECOVERY_HOURS } from '@/types/domain';
-import type { CurrentFatigueMap, FatigueSnapshot, MuscleId } from '@/types/domain';
+import type { CurrentFatigueMap, MuscleId } from '@/types/domain';
+import type { SaveFatigueResponse } from '@/types/api';
 
 export function useSaveFatigue() {
   const queryClient = useQueryClient();
+  const pushToast = useUIStore((state) => state.pushToast);
 
   return useMutation({
     mutationFn: async ({ muscleId, value }: { muscleId: MuscleId; value: number }) => {
-      const token = await clientAuth.currentUser?.getIdToken();
+      const token = getE2EAuthToken() ?? await clientAuth.currentUser?.getIdToken();
       if (!token) throw new Error('Not authenticated');
       const res = await fetch('/api/fatigue', {
         method: 'POST',
@@ -27,7 +31,7 @@ export function useSaveFatigue() {
         throw new Error((err as { error?: string }).error ?? `HTTP ${res.status}`);
       }
       const json = await res.json();
-      return (json as { snapshot: FatigueSnapshot }).snapshot;
+      return (json as SaveFatigueResponse).snapshot;
     },
 
     onMutate: async ({ muscleId, value }) => {
@@ -53,6 +57,7 @@ export function useSaveFatigue() {
     },
 
     onError: (_err, _vars, context) => {
+      pushToast('error', '疲労値の保存に失敗しました。変更前の値に戻しました。');
       if (context?.previousEntry) {
         const current = queryClient.getQueryData<CurrentFatigueMap>(queryKeys.fatigue.current);
         if (current) {

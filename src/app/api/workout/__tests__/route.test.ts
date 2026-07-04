@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { NextRequest } from 'next/server';
+import { Timestamp } from 'firebase-admin/firestore';
 
 const { mockBatchSet, mockBatchCommit, mockCollection, mockVerifyIdToken } = vi.hoisted(() => ({
   mockBatchSet: vi.fn(),
@@ -42,7 +43,7 @@ function setupCollectionMock() {
         doc: vi.fn().mockReturnValue({ get: vi.fn().mockResolvedValue(BENCH_PRESS_DOC) }),
       };
     }
-    return { doc: vi.fn().mockReturnValue({ id: 'auto_id' }) };
+    return { doc: vi.fn((id?: string) => ({ id: id ?? 'auto_id' })) };
   });
 }
 
@@ -60,7 +61,7 @@ function makeRequest(body: unknown, token = 'valid_token') {
 const VALID_BODY = {
   performedAt: new Date(Date.now() - 60_000).toISOString(), // 1分前
   exercises: [
-    { exerciseId: 'bench_press', sets: 3, reps: 10, weightKg: 60 },
+    { exerciseId: 'bench_press', sets: 3, reps: 10, weightKg: 60, rpe: null },
   ],
 };
 
@@ -70,15 +71,19 @@ describe('POST /api/workout', () => {
     mockVerifyIdToken.mockResolvedValue({ uid: 'test_uid' } as never);
     mockBatchCommit.mockResolvedValue(undefined);
     setupCollectionMock();
-    mockApplyWorkout.mockResolvedValue([
-      {
-        muscleId: 'chest' as const,
-        value: 60,
-        recordedAt: new Date(),
-        source: 'workout' as const,
-        workoutSessionId: 'auto_id',
-      },
-    ]);
+    mockApplyWorkout.mockResolvedValue({
+      current: null,
+      snapshots: [
+        {
+          muscleId: 'chest' as const,
+          value: 60,
+          recordedAt: new Date(),
+          createdAt: new Date(),
+          source: 'workout' as const,
+          workoutSessionId: 'auto_id',
+        },
+      ],
+    });
   });
 
   it('認証なし → 401', async () => {
@@ -108,7 +113,23 @@ describe('POST /api/workout', () => {
   it('sets が範囲外（0）→ 400', async () => {
     const res = await POST(makeRequest({
       ...VALID_BODY,
-      exercises: [{ exerciseId: 'bench_press', sets: 0, reps: 10, weightKg: 60 }],
+      exercises: [{ exerciseId: 'bench_press', sets: 0, reps: 10, weightKg: 60, rpe: null }],
+    }));
+    expect(res.status).toBe(400);
+  });
+
+  it('rpe が範囲外（11）→ 400', async () => {
+    const res = await POST(makeRequest({
+      ...VALID_BODY,
+      exercises: [{ exerciseId: 'bench_press', sets: 3, reps: 10, weightKg: 60, rpe: 11 }],
+    }));
+    expect(res.status).toBe(400);
+  });
+
+  it('rpe が小数 → 400', async () => {
+    const res = await POST(makeRequest({
+      ...VALID_BODY,
+      exercises: [{ exerciseId: 'bench_press', sets: 3, reps: 10, weightKg: 60, rpe: 7.5 }],
     }));
     expect(res.status).toBe(400);
   });
@@ -127,7 +148,7 @@ describe('POST /api/workout', () => {
     }));
     const res = await POST(makeRequest({
       ...VALID_BODY,
-      exercises: [{ exerciseId: 'not_exist', sets: 3, reps: 10, weightKg: 60 }],
+      exercises: [{ exerciseId: 'not_exist', sets: 3, reps: 10, weightKg: 60, rpe: null }],
     }));
     expect(res.status).toBe(400);
     const body = await res.json();
@@ -139,9 +160,108 @@ describe('POST /api/workout', () => {
     expect(res.status).toBe(201);
     const body = await res.json();
     expect(body.session.exercises).toHaveLength(1);
-    expect(body.fatigueImpacts).toBeDefined();
-    // batch.set が（セッション1件 + スナップショット1件）呼ばれる
-    expect(mockBatchSet).toHaveBeenCalledTimes(2);
+    expect(body.fatigueImpacts).toEqual(expect.objectContaining({
+      chest: 40,
+      triceps_left: 40,
+      shoulders_left: 20,
+    }));
+    expect(mockBatchSet).toHaveBeenNthCalledWith(
+      1,
+      expect.anything(),
+      expect.objectContaining({
+        fatigueImpacts: body.fatigueImpacts,
+      }),
+    );
+    // batch.set が（セッション1件 + スナップショット1件 + current1件）呼ばれる
+    expect(mockBatchSet).toHaveBeenCalledTimes(3);
+    expect(mockBatchSet.mock.calls[2][0].id).toBe('fatigueCurrent');
+    expect(mockBatchSet.mock.calls[2][1].muscles.chest.value).toBe(60);
+    expect(mockBatchSet.mock.calls[2][2]).toEqual({ merge: true });
+    expect(mockBatchCommit).toHaveBeenCalledOnce();
+  });
+
+  it('rpe 10 を疲労デルタ・保存セッション・レスポンスに反映する', async () => {
+    const bodyWithRpe = {
+      ...VALID_BODY,
+      exercises: [
+        { exerciseId: 'bench_press', sets: 3, reps: 10, weightKg: 60, rpe: 10 },
+      ],
+    };
+
+    const res = await POST(makeRequest(bodyWithRpe));
+
+    expect(res.status).toBe(201);
+    const body = await res.json();
+    expect(body.fatigueImpacts).toEqual(expect.objectContaining({
+      chest: 48,
+      triceps_left: 48,
+      shoulders_left: 24,
+    }));
+    expect(body.session.exercises[0].rpe).toBe(10);
+    const sessionWrite = mockBatchSet.mock.calls[0][1];
+    expect(sessionWrite.exercises[0].rpe).toBe(10);
+    expect(mockApplyWorkout).toHaveBeenCalledWith(
+      'test_uid',
+      expect.objectContaining({ chest: 48 }),
+      'auto_id',
+      expect.anything(),
+      expect.any(Date),
+      expect.any(Date),
+    );
+  });
+
+  it('applyWorkoutToFatigue に performedAt と now を渡す', async () => {
+    await POST(makeRequest(VALID_BODY));
+
+    expect(mockApplyWorkout).toHaveBeenCalledOnce();
+    const [, , sessionId, , performedAt, now] = mockApplyWorkout.mock.calls[0];
+    expect(sessionId).toBe('auto_id');
+    expect(performedAt).toBeInstanceOf(Date);
+    expect((performedAt as Date).toISOString()).toBe(VALID_BODY.performedAt);
+    expect(now).toBeInstanceOf(Date);
+  });
+
+  it('スナップショット書き込みに createdAt を保存する', async () => {
+    const recordedAt = new Date('2026-04-24T12:00:00.000Z');
+    const createdAt = new Date('2026-04-24T12:00:01.000Z');
+    mockApplyWorkout.mockResolvedValueOnce({
+      current: null,
+      snapshots: [
+        {
+          muscleId: 'chest' as const,
+          value: 60,
+          recordedAt,
+          createdAt,
+          source: 'workout' as const,
+          workoutSessionId: 'auto_id',
+        },
+      ],
+    });
+
+    await POST(makeRequest(VALID_BODY));
+
+    const snapshotWrite = mockBatchSet.mock.calls[1][1];
+    expect(snapshotWrite.recordedAt).toBeInstanceOf(Timestamp);
+    expect(snapshotWrite.createdAt).toBeInstanceOf(Timestamp);
+    expect(snapshotWrite.recordedAt.toDate()).toEqual(recordedAt);
+    expect(snapshotWrite.createdAt.toDate()).toEqual(createdAt);
+    const currentWrite = mockBatchSet.mock.calls[2][1];
+    expect(currentWrite.muscles.chest.recordedAt.toDate()).toEqual(recordedAt);
+    expect(currentWrite.muscles.chest.createdAt.toDate()).toEqual(createdAt);
+  });
+
+  it('順序逆転でスナップショットが 0 件でも session と impacts は保存する', async () => {
+    mockApplyWorkout.mockResolvedValueOnce({
+      current: null,
+      snapshots: [],
+    });
+
+    const res = await POST(makeRequest(VALID_BODY));
+
+    expect(res.status).toBe(201);
+    const body = await res.json();
+    expect(body.fatigueImpacts.chest).toBe(40);
+    expect(mockBatchSet).toHaveBeenCalledTimes(1);
     expect(mockBatchCommit).toHaveBeenCalledOnce();
   });
 });

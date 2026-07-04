@@ -30,6 +30,7 @@ export const handlers = [
           muscleId: "chest",
           value: 50,
           recordedAt: new Date().toISOString(),
+          createdAt: new Date().toISOString(),
           source: "manual",
           workoutSessionId: null,
         },
@@ -66,5 +67,12 @@ export const handlers = [
 
   http.get("/api/workout/history", () =>
     HttpResponse.json({ sessions: [], nextCursor: null }),
+  ),
+
+  http.delete("/api/workout/:id", ({ params }) =>
+    HttpResponse.json({
+      deletedSessionId: String(params.id),
+      affectedMuscles: [],
+    }),
   ),
 ];

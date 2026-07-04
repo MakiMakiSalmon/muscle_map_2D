@@ -1,14 +1,22 @@
 import { useQuery } from '@tanstack/react-query';
 import { clientAuth } from '@/lib/firebase/client';
+import { getE2EAuthToken } from '@/lib/auth/e2eAuth';
 import { queryKeys } from '@/lib/queryKeys';
-import type { Exercise } from '@/types/domain';
+import type { ExerciseDto, ExercisesResponse } from '@/types/api';
 
-async function fetchExercises(q: string): Promise<Exercise[]> {
-  const token = await clientAuth.currentUser?.getIdToken();
+const EXERCISES_STALE_TIME = 24 * 60 * 60 * 1000;
+
+async function fetchExercises(q?: string): Promise<ExerciseDto[]> {
+  const token = getE2EAuthToken() ?? await clientAuth.currentUser?.getIdToken();
   if (!token) throw new Error('Not authenticated');
-  const params = new URLSearchParams({ limit: '20' });
-  if (q) params.set('q', q);
-  const res = await fetch(`/api/exercises?${params}`, {
+
+  const params = new URLSearchParams();
+  if (q) {
+    params.set('q', q);
+    params.set('limit', '20');
+  }
+  const query = params.toString();
+  const res = await fetch(`/api/exercises${query ? `?${query}` : ''}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
   if (!res.ok) {
@@ -16,13 +24,25 @@ async function fetchExercises(q: string): Promise<Exercise[]> {
     throw new Error((err as { error?: string }).error ?? `HTTP ${res.status}`);
   }
   const json = await res.json();
-  return (json as { exercises: Exercise[] }).exercises;
+  return (json as ExercisesResponse).exercises;
 }
 
 export function useExercises(q = '') {
+  const normalizedQuery = q.trim();
+
   return useQuery({
-    queryKey: queryKeys.exercises.list(q),
-    queryFn: () => fetchExercises(q),
-    staleTime: 24 * 60 * 60 * 1000,
+    queryKey: normalizedQuery
+      ? queryKeys.exercises.list(normalizedQuery)
+      : queryKeys.exercises.all,
+    queryFn: () => fetchExercises(normalizedQuery || undefined),
+    staleTime: EXERCISES_STALE_TIME,
+  });
+}
+
+export function useAllExercises() {
+  return useQuery({
+    queryKey: queryKeys.exercises.all,
+    queryFn: () => fetchExercises(),
+    staleTime: EXERCISES_STALE_TIME,
   });
 }

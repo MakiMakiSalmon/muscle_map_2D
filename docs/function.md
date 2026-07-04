@@ -1,5 +1,7 @@
 # 機能一覧（v2.0 実装対象・確定版）
 
+> **【凍結・歴史的記録】** 本書は v2.0 の確定仕様。v3.0 の生きた仕様は [docs/v3/](./v3/)（`function.md` / `design.md`）を参照。本書は v3.0 の design.md で上書きされていない箇所のみ有効。
+
 筋肉疲労マップ 2D v2.0 の実装対象機能。スコープは確定済み。
 詳細な実装仕様は [design_basic.md](./design_basic.md) / [design_detail.md](./design_detail.md) を参照。
 

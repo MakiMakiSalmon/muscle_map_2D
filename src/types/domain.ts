@@ -11,7 +11,7 @@ export const MUSCLE_IDS = [
 export type MuscleId = typeof MUSCLE_IDS[number];
 
 export const MUSCLE_LABELS: Record<MuscleId, string> = {
-  head:             '頭部',
+  head:             '首',
   chest:            '胸部',
   back:             '背中',
   abs:              '腹部',
@@ -37,7 +37,7 @@ export const MUSCLE_GROUPS = [
 export type MuscleGroup = typeof MUSCLE_GROUPS[number];
 
 export const MUSCLE_GROUP_LABELS: Record<MuscleGroup, string> = {
-  head:      '頭部',
+  head:      '首',
   chest:     '胸部',
   back:      '背中',
   abs:       '腹部',
@@ -82,12 +82,16 @@ export interface FatigueSnapshot {
   muscleId: MuscleId;
   value: number;
   recordedAt: Date;
+  createdAt: Date;
   source: 'manual' | 'workout';
   workoutSessionId: string | null;
 }
 
 // applyWorkoutToFatigue の戻り値 / POST /api/workout の batch write に渡す shape
-export type FatigueSnapshotInput = Pick<FatigueSnapshot, 'muscleId' | 'value' | 'source' | 'workoutSessionId'> & { recordedAt: Date };
+export type FatigueSnapshotInput = Pick<FatigueSnapshot, 'muscleId' | 'value' | 'source' | 'workoutSessionId'> & {
+  recordedAt: Date;
+  createdAt: Date;
+};
 
 export interface CurrentFatigueEntry {
   savedValue: number;
@@ -111,12 +115,14 @@ export interface WorkoutExerciseInput {
   sets: number;
   reps: number | null;
   weightKg: number | null;
+  rpe: number | null;
 }
 
 export interface WorkoutSession {
   id: string;
   performedAt: string;              // ISO 8601 UTC
   exercises: WorkoutExerciseInput[];
+  fatigueImpacts?: Partial<Record<MuscleId, number>>;
 }
 
 export interface WorkoutSaveResult {
